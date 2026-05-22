@@ -1,0 +1,2466 @@
+---
+a3ip-bundle: "1.1"
+package: ai-code-review-flow
+version: "1.3.1"
+generated: 2026-05-22T21:01:07Z
+files: 15
+spec_url: https://raw.githubusercontent.com/a3ip-standard/spec/main/docs/A3IP-SPEC-v1.9.md
+---
+
+# ================================================================
+# A3IP BUNDLE -- AI INSTALLATION INSTRUCTIONS
+# ================================================================
+#
+# This file is an A3IP (AI Infrastructure Installation Package) bundle.
+# It contains a complete AI workflow that you can install into your workspace.
+#
+# IF YOU ARE NOT FAMILIAR WITH A3IP:
+#   Fetch the spec from: https://raw.githubusercontent.com/a3ip-standard/spec/main/docs/A3IP-SPEC-v1.9.md
+#   Read it, then return here and follow INSTALL.md to install this package.
+#
+# IF YOU KNOW A3IP:
+#   Read manifest.yaml, then follow INSTALL.md.
+#
+# ================================================================
+
+=== FILE: CHANGELOG.md ===
+---
+format: a3ip-changelog
+spec: "1.1"
+package: ai-code-review-flow
+---
+
+# Changelog: ai-code-review-flow
+
+This file documents changes between versions of this package.
+Each version section contains:
+- A human-readable **Summary** of what changed
+- **Upgrade steps** — AI-readable instructions for applying this version's changes
+  (written exactly like INSTALL.md steps; apply only what changed)
+- **Breaking changes** — config keys renamed/removed, new required MCPs, etc.
+  (an AI receiving an upgrade must re-run the wizard for any affected fields)
+
+New version entries go at the **top** of this file (newest first).
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+## 1.3.1
+
+*Released: 2026-05-22*
+
+### Summary
+
+Adapter knowledge fix: the Cowork and Codex runtime adapters now teach
+the installing AI to strip trailing path separators from `install_dir`
+before substituting `{{install_dir}}` into SKILL.md and protocol files.
+Without this, a Windows `install_dir` ending in `\` plus the template's
+leading `/config.json` produced a malformed mixed-slash path
+(`...\.claude\packages\ai-code-review-flow\/config.json`) which the
+runtime's file APIs refused to open — the symptom Max hit verifying
+v1.3.0 on Cowork after a clean install. POSIX hides the bug because
+the kernel collapses `//`, but the root cause is platform-neutral;
+the patch is uniform (`rstrip("/\\\\")` on Python, `TrimEnd('/', '\')`
+on PowerShell).
+
+The fix is documented as a "Path-separator normalization (required)"
+knowledge block adjacent to each adapter's substitution worked example,
+and the example code itself was updated to apply the normalization. No
+config keys, scripts, manifests, or protocols changed — this is purely
+adapter knowledge prose plus a one-line code edit in each illustrative
+substitution block.
+
+### Upgrade steps
+
+No action required — non-breaking adapter-knowledge update. The
+installing AI will pick up the new normalization convention on its
+next install or upgrade. Existing v1.3.0 installs on Cowork or Codex
+should be refreshed by rerunning the install/upgrade flow against the
+v1.3.1 bundle so the substituted SKILL.md is rewritten with the
+normalized path.
+
+### Breaking changes
+
+None.
+
+### Files changed
+
+- `manifest.yaml` — bumped
+- `CHANGELOG.md` — replaced
+- `adapters/runtime/codex/install-skill.md` — replaced
+- `adapters/runtime/cowork/install-skill.md` — replaced
+
+## 1.3.0
+
+*Released: 2026-05-21*
+
+### Summary
+
+Re-aligns the package to A3IP spec v1.9 (outcome-shaped Tier 2 install
+steps; adapters as Tier 3 platform-knowledge artifacts). Four changes:
+
+1. **`min_a3ip_spec` bumped 1.8 → 1.9.** The package now declares v1.9
+   as its minimum spec. v1.9 is a backward-compatible re-alignment of
+   the v1.8 contract; existing v1.2.1 installations remain valid.
+
+2. **INSTALL.md re-shaped to outcomes.** Steps 7/8/9 renamed from
+   procedure language ("Install Skills" / "Set Up Artifacts" /
+   "Register Protocols") to outcome language ("Make skills discoverable
+   to the host runtime" / "Make artifacts available on the host
+   runtime" / "Make protocols invocable on the host runtime"). All 11
+   steps now declare a tier marker (`*Tier: 1 (mechanical)*` or
+   `*Tier: 2 (required outcome ...)*`) so the installing AI and the
+   validator know which steps describe outcomes versus mechanical
+   procedures. The installed.json template's `a3ip_spec` bumped to
+   "1.9".
+
+3. **Codex runtime adapter rewritten as a knowledge artifact.** The
+   biggest functional change in this release — closes the v1.2.x
+   Codex install failure mode where the skill files were placed at
+   `~/.codex/skills/<name>/` but the host runtime never registered
+   them. The new adapter leads with Codex's discovery convention
+   (skills must be referenced in `~/.codex/AGENTS.md` to be loaded),
+   and adds **Step C5: Register the skill in AGENTS.md** with a
+   marker-bounded stanza pattern that supports clean upserts on
+   re-install. Code blocks are explicitly marked as illustrative
+   worked examples. Prose-first throughout. The `installed.json`
+   template's `a3ip_spec` bumped to "1.9".
+
+4. **Cowork runtime adapter re-framed as a knowledge artifact.**
+   Restructured to lead with Cowork's discovery and registration
+   mechanism (Personal Skills UI + restart-driven registry refresh)
+   before getting into worked-example steps. Added a "How Cowork
+   handles artifacts" section that names the `mcp__cowork__create_artifact`
+   mechanism explicitly. `installed.json` template's `a3ip_spec`
+   bumped to "1.9". Steps' content unchanged in substance; the
+   framing is now consistent with A3IP spec v1.9 'Writing Adapter
+   Documents'.
+
+### Upgrade steps
+
+**From v1.2.1 on Cowork:**
+
+1. Save the new `ai-code-review-flow.skill` (will be presented during
+   install). Click **Save skill** in Cowork; confirm overwrite of the
+   prior version.
+2. Restart Cowork so the updated SKILL.md loads.
+3. Your existing `config.json` at `{{config.install_dir}}/config.json`
+   is unchanged — no wizard re-run needed.
+4. Overwrite `{{config.install_dir}}/installed.json` with the new
+   `version: "1.3.0"` and `a3ip_spec: "1.9"` per the spec Step U3.
+
+**From v1.2.1 on Codex:**
+
+1. **Critical:** check `~/.codex/AGENTS.md`. If a v1.2.1 install left
+   no marker block for `ai-code-review-flow` there, this upgrade is
+   really a no-op patch followed by what should have been the
+   registration step. Apply Codex adapter Step C5 (Register the skill
+   in AGENTS.md) — without this stanza, "start code review" continues
+   to trigger Codex's generic workspace exploration instead of the
+   skill. This is the bug v1.3.0 is designed to fix.
+2. Re-apply Codex adapter Steps C2–C4 to refresh the skill files at
+   `~/.codex/skills/ai-code-review-flow/` (in case any markdown files
+   reference v1.8 spec language).
+3. Overwrite `{{config.install_dir}}/installed.json` with the new
+   `version: "1.3.0"` and `a3ip_spec: "1.9"` per the spec Step U3.
+4. Start a new Codex session and verify "start code review" loads the
+   skill (per Codex adapter Step C8).
+
+**From v1.2.1 on Claude Code / Cursor:** apply INSTALL.md Step 7's
+generic-copy guidance to refresh `components/skills/code-review/` in
+your platform's skills folder. No other changes required.
+
+### Breaking changes
+
+None. v1.9 is backward-compatible with v1.8 at the spec level;
+`min_a3ip_spec: "1.9"` only restricts installation to AIs that know
+v1.9 (every spec-compliant installer should). The runtime contract
+(SKILL.md trigger phrases, config.json schema, post_review.py
+interface) is unchanged.
+
+### Files changed
+
+- `manifest.yaml` — `min_a3ip_spec` bumped 1.8 → 1.9
+- `CHANGELOG.md` — this entry prepended
+- `INSTALL.md` — re-shaped to outcomes; tier markers on all 11 steps; installed.json template `a3ip_spec` bumped to "1.9"
+- `adapters/runtime/codex/install-skill.md` — rewritten as knowledge artifact; AGENTS.md registration added as Step C5 (the v1.2.x install gap)
+- `adapters/runtime/cowork/install-skill.md` — re-framed as knowledge artifact; `a3ip_spec` in installed.json template bumped to "1.9"
+
+## 1.2.1
+
+*Released: 2026-05-18*
+
+### Summary
+
+Fixes a pre-existing skill bug exposed by the v1.2.0 Codex install: the
+runtime SKILL.md and protocol had `{{config.*}}` template placeholders but
+no instruction telling the runtime AI to load them from a file. On Codex
+(no Cowork chat-history backchannel to fill the gap), the skill couldn't
+locate config.json and fell back to env vars / gh CLI / asking the user
+again.
+
+Three concrete changes:
+
+1. **SKILL.md rewritten to be self-contained at runtime.** Added an explicit
+   "Runtime setup — load config" section at the top: read
+   `{{install_dir}}/config.json` once at session start, load
+   `platform / project_ref / api_token / base_url` into working memory.
+   Folded the start-review workflow (8 steps) into SKILL.md so the runtime
+   AI has the full flow — read config → ask for MR/PR → fetch diff → apply
+   checklist → draft → confirm → post → update Last Review record — in one
+   file. Trigger phrases now listed in the `description:` frontmatter so
+   Cowork's skill matcher picks them up.
+
+2. **Protocol Step 6 fixed: missing `config_json_path` argument added.**
+   `scripts/post_review.py`'s usage is
+   `<config_json_path> <mr_number> <review_body> <verdict>` (four args), but
+   the protocol previously called it with three. Added a new Step 0 to load
+   config explicitly and updated Step 6 to pass
+   `{{install_dir}}/config.json` as the first argument.
+
+3. **Codex adapter Step C4 substitution generalized.** Previously only
+   substituted `{{install_dir}}` in the lifted root SKILL.md; now walks all
+   `*.md` files in the installed skill directory and substitutes wherever
+   the placeholder appears. This ensures the protocol file (which also now
+   references `{{install_dir}}`) gets resolved on Codex too. Cowork adapter
+   already substituted in SKILL.md before zipping — its substitution is now
+   meaningful because SKILL.md contains six `{{install_dir}}` references
+   (it had zero in v1.2.0; the substitute step was a no-op).
+
+4. **Duplicate SKILL.md reconciled / orphan deleted.** The package shipped
+   two SKILL.md files: `components/skills/code-review/SKILL.md` (generic,
+   what the Cowork adapter Step C1 actually reads) and
+   `adapters/runtime/cowork/SKILL.md` (Cowork-specific, with correct runtime
+   instructions but never actually picked up by the adapter — effectively
+   orphan dead code since v1.1.0). The two had diverged in content,
+   especially around the config-loading section, which is why "code review
+   works on Cowork but does X wrong" symptoms kept reappearing. v1.2.1 folds
+   the good bits from the Cowork-adapter variant (re-install prompt on
+   missing config, "Files in this skill" footer) into the canonical
+   `components/skills/code-review/SKILL.md` and deletes the orphan. There is
+   now exactly one runtime SKILL.md, and the install adapters package /
+   install it without further variation.
+
+### Upgrade steps
+
+For existing installs (any platform):
+
+1. Replace `components/skills/code-review/SKILL.md` with the new version.
+2. Replace `components/protocols/start-review.md` with the new version.
+3. Replace `adapters/runtime/codex/install-skill.md` with the new version.
+
+For **Cowork installs**: rebuild the `.skill` zip using the Cowork adapter
+(Step C1's `{{install_dir}}` substitution is now meaningful — it will
+replace the six placeholder occurrences in SKILL.md). Re-present via
+`mcp__cowork__present_files`. Save skill. Restart Cowork. The existing
+`last-review` artifact and `config.json` are preserved.
+
+For **Codex installs**: re-run the Codex adapter Steps C2–C7 (extract bundle
+→ back up → reinstall → substitute → re-init last-review.md → update
+installed.json). The new Step C4 substitution will fix the runtime config
+lookup that was broken in v1.2.0.
+
+### Breaking changes
+
+None at the install or config-schema level. The runtime contract is
+genuinely new (SKILL.md now requires `{{install_dir}}` to be substituted),
+but every adapter shipped in this version performs that substitution, so
+existing user-facing config is unchanged.
+
+### Files changed
+
+- `manifest.yaml` — bumped
+- `CHANGELOG.md` — this entry
+- `components/skills/code-review/SKILL.md` — rewritten with Runtime setup
+  section + folded protocol steps + trigger phrases in description +
+  merged "Files in this skill" footer and re-install prompt from the
+  retired Cowork-adapter SKILL.md
+- `components/protocols/start-review.md` — added Step 0 (load config) and
+  fixed Step 6 args
+- `adapters/runtime/codex/install-skill.md` — Step C4 substitution now
+  walks all `*.md` files in the installed skill, not just root SKILL.md
+- `adapters/runtime/cowork/SKILL.md` — **deleted** (orphan duplicate; the
+  Cowork install adapter Step C1 was already reading from
+  `components/skills/code-review/SKILL.md`, never from this file)
+
+## 1.2.0
+
+*Released: 2026-05-17*
+
+### Summary
+
+Adds a Codex runtime adapter and aligns the existing Cowork adapter with the
+Tier-3 framing introduced in Creator v1.14.1 and the A3IP CONCEPT doc.
+
+Three concrete changes:
+
+1. **New `adapters/runtime/codex/install-skill.md`.** Modeled on the Creator's
+   v1.14.0 Codex adapter, customized for ai-code-review-flow. Files install
+   to `~/.codex/skills/ai-code-review-flow/`; per-install state goes to
+   `{{config.install_dir}}` (default `~/.codex/packages/ai-code-review-flow/`).
+   The Last Review "artifact" degrades to a markdown file at
+   `{{config.install_dir}}/last-review.md` since Codex has no UI artifact
+   registry — same semantic record, different medium. `install_method` is
+   `"generic-copy"` per spec v1.8.
+
+2. **Cowork adapter Step C2 rewritten in Tier-3 language.** The runtime
+   payload is now described by purpose ("everything the skill needs at
+   runtime, derived from reading SKILL.md") rather than enumeration. The
+   worked example (SKILL.md at root + scripts/ + artifact.html/artifact.md
+   lifted to root) is retained as the current concrete answer for this
+   package, with explicit acknowledgment that the install adapter is the
+   one place that knows both the source-tree layout and the runtime layout.
+   Step C1 reference to a stale `adapters/claude/SKILL.md` path corrected to
+   `components/skills/code-review/SKILL.md`. Step C6 installed.json example
+   refreshed to spec v1.8.
+
+3. **INSTALL.md routes Codex via its adapter.** Step 7 now references the
+   Codex adapter the same way Cowork is referenced; Step 8 (Set Up Artifacts)
+   notes the Codex adapter seeds `last-review.md`; Step 9 (Register Protocols)
+   groups Codex with Cowork (both fold protocols into the runtime SKILL.md).
+   Step 11 installed.json example shows `install_method` per spec v1.8.
+
+Also: `min_a3ip_spec` bumped 1.7 → 1.8 in manifest (this package's
+installed.json schema and adapter wording are now spec v1.8 aligned); INSTALL.md
+`spec:` frontmatter bumped 1.6 → 1.8 to match.
+
+### Upgrade steps
+
+For existing installs (any platform), the only material change is the new
+Codex adapter — which only matters at install time, not at runtime. No
+runtime files need replacing on existing installs.
+
+Recommended upgrade path:
+
+1. Replace `adapters/runtime/cowork/install-skill.md`, `INSTALL.md`, and
+   `manifest.yaml` with the new versions (the v1.1.x source tree is otherwise
+   unchanged).
+2. Add the new `adapters/runtime/codex/install-skill.md` file.
+3. **For Cowork installs:** rebuild the `.skill` zip using the new Cowork
+   adapter (Step C1–C2) and re-present via `mcp__cowork__present_files`. The
+   user clicks Save skill again, restarts Cowork. `config.json` and the
+   existing `last-review` artifact in the Cowork registry are preserved.
+4. **For Codex installs (first time on this platform):** follow
+   `adapters/runtime/codex/install-skill.md` end to end.
+5. Update `installed.json` per the new template (add `install_method` if
+   absent on legacy installs): `cowork-skill` for Cowork, `generic-copy`
+   for Codex.
+
+### Breaking changes
+
+None. The Codex install path is additive (the previous INSTALL.md Step 7
+generic copy guidance still works as a fallback if the adapter isn't used).
+The Cowork adapter's runtime payload is unchanged in content — the Tier-3
+rewrite changes the wording, not what gets packaged.
+
+### Files changed
+
+- `manifest.yaml` — `min_a3ip_spec` 1.7 → 1.8; version bumped to 1.2.0
+- `INSTALL.md` — `spec:` frontmatter 1.6 → 1.8; Step 7/8/9 route Codex via
+  adapter; Step 11 example updated to spec v1.8 schema
+- `adapters/runtime/cowork/install-skill.md` — Step C1 path corrected;
+  Step C2 rewritten with Tier-3 framing; Step C6 example refreshed
+- `adapters/runtime/codex/install-skill.md` — added (C1–C8 + Upgrading +
+  Troubleshooting)
+- `CHANGELOG.md` — this entry
+
+## 1.1.0
+
+*Released: 2026-05-16*
+
+### Summary
+
+Adopts A3IP spec v1.7's two-tier adapter model. The single adapters/claude/ axis (which conflated 'Cowork-specific install flow' with 'Windows-specific file conventions') is replaced by two orthogonal axes: adapters/os/{windows,posix}/ for filesystem conventions and tool selection, and adapters/runtime/cowork/ for Cowork-specific install/UI flow. This closes the recurring class of bug where the install AI used a tool whose ~ expansion didn't match the host OS (e.g. Cowork's bash on Windows, where ~ is the ephemeral Linux sandbox home, not the persistent Windows user home). v1.1.0 also bumps min_a3ip_spec to 1.7 so installers know to expect the new adapter layout.
+
+### Upgrade steps
+
+1. Replace the package's `adapters/` directory: remove `adapters/claude/`,
+   add `adapters/runtime/cowork/install-skill.md`, `adapters/runtime/cowork/SKILL.md`,
+   `adapters/os/windows/file-ops.md`, `adapters/os/posix/file-ops.md`. The new
+   layout matches A3IP spec v1.7's two-tier model.
+2. Replace `INSTALL.md` -- it now references `adapters/runtime/cowork/install-skill.md`
+   in place of `adapters/claude/install-skill.md` for Cowork-specific steps.
+3. Replace `manifest.yaml` -- `min_a3ip_spec: "1.7"`.
+4. **Rebuild the `.skill` zip** from this v1.1.0 bundle (the Cowork adapter is
+   now at the new path). Re-present for Save skill. Restart Cowork.
+5. Update `installed.json` to `version: "1.1.0"` and `a3ip_spec: "1.7"`.
+
+config.json is unchanged -- preserve existing token, project_ref, etc.
+
+### Breaking changes
+
+None at the package-functionality level -- config schema unchanged, scripts
+unchanged, protocols unchanged, skill unchanged. The adapter directory layout
+changed (adapters/claude/ -> adapters/runtime/cowork/) but the install AI
+just reads INSTALL.md which has been updated to point at the new path.
+
+### Files changed
+
+- `manifest.yaml` — bumped
+- `CHANGELOG.md` — replaced
+- `INSTALL.md` — replaced
+- `manifest.yaml` — replaced
+- `adapters/os/posix/file-ops.md` — added
+- `adapters/os/windows/file-ops.md` — added
+- `adapters/runtime/cowork/SKILL.md` — added
+- `adapters/runtime/cowork/install-skill.md` — added
+- `adapters/claude/SKILL.md` — deleted
+- `adapters/claude/install-skill.md` — deleted
+
+## 1.0.4
+
+*Released: 2026-05-16*
+
+### Summary
+
+Fixes Step 1 (Check for Existing Installation) so the install AI uses `mcp__filesystem__read_file` on Cowork, not bash. The previous wording in v1.0.0-v1.0.3 said 'Look for installed.json in {{config.install_dir}}' without specifying which file tool -- on Cowork the install AI typically used bash, which expands `~` to the ephemeral Linux sandbox home and never finds the persistent Windows-side installed.json. Result: every upgrade install was reported as fresh, even when installed.json clearly existed at `C:\\Users\\maksi\\.claude\\packages\\...\\installed.json`. Step 1 now lists per-platform paths and tells the install AI which tool to use for each.
+
+### Upgrade steps
+
+Install v1.0.4 from this bundle. The install AI will now correctly detect
+the existing v1.0.3 (or earlier) install via mcp__filesystem and route to the
+Upgrading flow instead of running a fresh install. config.json and
+installed.json on disk are untouched -- preserve your existing token,
+project_ref, etc.
+
+### Breaking changes
+
+None. INSTALL.md wording change only.
+
+### Files changed
+
+- `manifest.yaml` — bumped
+- `CHANGELOG.md` — replaced
+- `INSTALL.md` — replaced
+
+## 1.0.3
+
+*Released: 2026-05-16*
+
+### Summary
+
+Fixes runtime config-lookup failure where the skill reports 'I don't see a config for this package' even though config.json exists at the absolute install_dir. Root cause: v1.0.0-v1.0.2's adapter SKILL.md had `<install_dir>` as a description token (not a substitution placeholder), so the runtime AI saw a literal `<install_dir>/config.json` path and fell back to looking in Cowork's internal skill folder. v1.0.3 changes the adapter SKILL.md to use `{{install_dir}}` as a real placeholder, and updates install-skill.md Step C1 to substitute it with the absolute installation path before packaging the .skill zip. The skill is still portable for sensitive config values (token, project_ref, platform stay in config.json), but the install_dir PATH is correctly baked in per-user.
+
+### Upgrade steps
+
+**Cowork installs of v1.0.0/v1.0.1/v1.0.2:** the saved `.skill` zip has
+the broken SKILL.md with literal `<install_dir>` tokens. Re-install to get
+the fix:
+
+1. Rebuild the `.skill` from this v1.0.3 bundle by running Steps C1-C4 of
+   `adapters/claude/install-skill.md`. **Crucially, Step C1 now substitutes
+   `{{install_dir}}` with the abso
+=== END FILE ===
+
+=== FILE: CONFIGURE.md ===
+---
+format: a3ip-configure
+spec: "1.6"
+package: ai-code-review-flow
+---
+
+# Configuration Wizard: ai-code-review-flow
+
+You are setting up this workflow. Ask the questions below in order.
+Be conversational — no need to present them as a rigid form.
+Collect all required values before moving to installation.
+
+## Before Installation — ask these first
+
+---
+
+### 1. Installation directory
+Ask:
+> "What is your Installation directory? Directory where ai-code-review-flow's config.json, installed.json, and scripts will be stored. Default is the platform convention (Cowork / Claude Code: ~/.claude/packages/<name>/, Codex: ~/.codex/packages/<name>/). IMPORTANT for the install AI: expand the user-typed value to an absolute path before writing to config.json or installed.json. On Cowork (Windows), expand `~` to the Windows user home using the platform's native separator -- e.g. ~/.claude/packages/X/ becomes the absolute path under C:/Users/USERNAME/.claude/packages/X/. On Linux/macOS, expand to /home/USERNAME/ or /Users/USERNAME/. The runtime AI reads this value via the Read tool which does NOT expand ~ -- storing a tilde here breaks the runtime config lookup. For example: ~/.claude/packages/ai-code-review-flow/"
+
+- Key: `install_dir`
+- Type: string
+- Required: yes
+- Default: `~/.claude/packages/ai-code-review-flow/`
+- Example: `~/.claude/packages/ai-code-review-flow/`
+
+---
+
+### 2. Code hosting platform
+Ask:
+> "Which code hosting platform should be used? The platform where your code is hosted."
+
+- Key: `platform`
+- Type: select
+- Required: yes
+- Options:
+  - `gitlab` — GitLab (gitlab.com or self-hosted) (default)
+  - `github` — GitHub (github.com)
+
+---
+
+### 3. Project reference
+Ask:
+> "What is your Project reference? GitLab: numeric project ID (Settings -> General). GitHub: owner/repo slug. For example: 12345678  (GitLab)  or  acme/my-service  (GitHub)"
+
+- Key: `project_ref`
+- Type: string
+- Required: yes
+- Example: `12345678  (GitLab)  or  acme/my-service  (GitHub)`
+
+---
+
+### 4. API token
+Ask:
+> "What is your API token? Personal access token. GitLab: api scope. GitHub: repo scope. I won't display this value back to you."
+
+- Key: `api_token`
+- Type: string
+- Required: yes
+- **Sensitive** — do NOT echo the value back to the user.
+  Once received, confirm only: "✅ API token received and will be stored securely in an environment variable."
+  Do NOT include `{{config.api_token}}` in the confirmation summary.
+
+---
+
+### 5. GitLab base URL
+*(Only ask if: platform == gitlab)*
+
+Ask:
+> "What is your GitLab base URL? Base URL for self-hosted GitLab. Leave blank to use gitlab.com. (optional; default: https://gitlab.com) For example: https://gitlab.mycompany.com"
+
+- Key: `base_url`
+- Type: string
+- Required: no (optional)
+- Default: `https://gitlab.com`
+- Example: `https://gitlab.mycompany.com`
+- If blank or skipped: store as empty/default, skip related steps during protocol execution.
+
+## Confirmation
+
+Before proceeding to installation, summarize everything and ask the user to confirm:
+
+---
+Here's what I'll configure:
+
+- **Installation directory**: {{config.install_dir}}
+- **Code hosting platform**: {{config.platform}}
+- **Project reference**: {{config.project_ref}}
+- **API token**: ✅ received (not displayed)
+- **GitLab base URL**: {{config.base_url}}
+
+Shall I proceed with installation?
+---
+
+Wait for explicit confirmation before moving to INSTALL.md.
+
+=== END FILE ===
+
+=== FILE: INSTALL.md ===
+---
+format: a3ip-install
+spec: "1.9"
+package: ai-code-review-flow
+---
+
+# Installation Guide: ai-code-review-flow
+
+## 1. Check for Existing Installation
+*Tier: 2 (required outcome -- adapter procedure)*
+
+After this step, the AI MUST know whether a prior installation of this
+package exists on the host. The detection target is `installed.json` at the
+platform-default install location:
+
+- **Cowork (Windows):** `~/.claude/packages/ai-code-review-flow/installed.json`.
+  **Use `mcp__filesystem__read_file`** for this read -- it expands `~` to the
+  Windows user home (`C:/Users/USERNAME/`). Do NOT use bash (its `~` resolves
+  to the ephemeral Linux sandbox home, not Windows) and do NOT use the Read
+  tool with a raw `~` (it does not expand tildes).
+- **Claude Code (macOS / Linux):** `~/.claude/packages/ai-code-review-flow/installed.json`.
+  Use `os.path.expanduser("~")` or `$HOME` before reading.
+- **Codex:** `~/.codex/packages/ai-code-review-flow/installed.json` (same tool
+  guidance as Cowork for Windows).
+- **Other platforms:** ask the user where they store package state.
+
+**Result:**
+- **Found:** read the `config_dir` field -- that is this user's actual
+  `install_dir`. Go directly to the [## Upgrading](#upgrading) section at the
+  end of this document. Apply only the changelog steps for versions after
+  the installed version.
+- **Not found:** proceed with the full install steps below.
+
+(After Step 4 the configure wizard collects a NEW or confirmed `install_dir`
+from the user. Step 5 then resolves it to an absolute path.)
+
+## 2. What This Package Installs
+*Tier: 2 (required outcome)*
+
+After this step, the user knows what workflows this package provides.
+
+**"start code review"** — Reads the current MR/PR diff, applies the review checklist, posts the structured review comment to GitLab or GitHub, and updates the Last Review artifact.
+
+## 3. Dependency Check
+*Tier: 2 (required outcome -- adapter procedure)*
+
+After this step, the AI MUST have verified that all required tools and MCP
+dependencies are present. If any required dependency is missing, the install
+is halted and the user is told what to install.
+
+**Required tools:**
+- [ ] **python >=3.9** — Runs post_review.py to call the GitLab or GitHub API.
+
+## 4. Run Configuration Wizard
+*Tier: 2 (required outcome)*
+
+After this step, all configuration values declared in CONFIGURE.md have been
+collected from the user and confirmed. Read and follow CONFIGURE.md.
+
+All `{{config.*}}` references in subsequent steps are substituted with
+the values collected here.
+
+## 5. Resolve install_dir to an absolute path
+*Tier: 1 (mechanical)*
+
+Before writing any file or storing the value, expand `{{config.install_dir}}`
+to a platform-native absolute path:
+
+- **Cowork (Windows):** if the value contains `~`, replace it with the user's
+  Windows home (typically the path under `C:/Users/USERNAME/` -- use the
+  platform's native separator, double backslashes inside JSON files).
+  Example: `~/.claude/packages/ai-code-review-flow/` -> the absolute path under
+  `C:/Users/USERNAME/.claude/packages/ai-code-review-flow/`.
+- **Linux / macOS:** if the value contains `~`, replace it with `$HOME` or
+  `os.path.expanduser('~')`.
+
+From this point on, treat `{{config.install_dir}}` as the absolute expanded
+path. Persist the expanded value (not the user-typed literal) when you write
+config.json (Step 6) and installed.json (Step 11). The runtime AI reads these
+files via tools that do not expand `~`, so a literal tilde breaks runtime
+config lookup.
+
+## 6. Install Scripts
+*Tier: 1 (mechanical)*
+
+Create `{{config.install_dir}}` if it does not exist. Copy script files from
+`scripts/` in this bundle to `{{config.install_dir}}/scripts/`.
+
+- **`post_review`** — POST a structured review comment to a GitLab MR or GitHub PR via REST API.
+
+## 7. Make skills discoverable to the host runtime
+*Tier: 2 (required outcome -- adapter procedure)*
+
+After this step, the host runtime MUST be able to load `code-review` from
+`components/skills/code-review/` when its trigger phrases appear ("start
+code review", "review this PR", "review this MR", "submit review", "do code
+review", "make a code review"). The procedure depends on the runtime; consult
+`adapters/runtime/<your-platform>/install-skill.md` for platform knowledge
+and a worked example.
+
+**Cowork:** the adapter at `adapters/runtime/cowork/install-skill.md`
+describes how Cowork's Personal Skills UI registers skills. The combined
+SKILL.md, scripts, and artifact templates get packaged into a `.skill` zip
+and installed via the "Save skill" button. The adapter also handles the
+artifact outcome in Step 8 (via `mcp__cowork__create_artifact`).
+
+**Codex:** the adapter at `adapters/runtime/codex/install-skill.md`
+describes how Codex discovers skills via `~/.codex/AGENTS.md`. **This is
+critical** — placing files in `~/.codex/skills/` is not enough; the host
+runtime must be told about them via AGENTS.md registration. Without the
+AGENTS.md stanza, "start code review" will not trigger the skill (this was
+the v1.2.x install failure mode).
+
+**Claude Code / Cursor / Other platforms:** if your platform has a runtime
+adapter directory, follow it. Otherwise apply the generic-copy convention:
+copy `components/skills/code-review/` into your platform's skills directory.
+
+- **Claude Code:** copy to `~/.claude/skills/`
+- **Other platforms:** load the SKILL.md content as a persistent instruction set.
+
+## 8. Make artifacts available on the host runtime
+*Tier: 2 (required outcome -- adapter procedure)*
+
+After this step, the Last Review record MUST be in a form the user can open
+and the runtime can update. On HTML-capable runtimes this means an artifact
+card; on text-only runtimes it means a markdown fallback file at a known
+path. Consult the runtime adapter for the platform's artifact mechanism.
+
+**Cowork:** the artifact gets created during Step 7 via Step C3 of
+`adapters/runtime/cowork/install-skill.md` (`mcp__cowork__create_artifact`).
+Skip this step if you ran the Cowork adapter.
+
+**Codex:** the adapter seeds `{{config.install_dir}}/last-review.md` from
+`components/artifacts/last-review/artifact.md` during install. Skip this
+step if you ran the Codex adapter.
+
+**Claude Code / Cursor / other HTML-capable platforms:**
+
+**last-review** (`components/artifacts/last-review/`)
+
+- **HTML-artifact platforms (Claude.ai):**
+  Create a new artifact using `artifact.html`. Name it "last-review".
+
+- **CLI / file-based platforms (no runtime adapter available):**
+  Use the description in `artifact.md` to maintain an equivalent
+  file-based structure (e.g. a markdown table at a known path).
+
+## 9. Make protocols invocable on the host runtime
+*Tier: 2 (required outcome -- adapter procedure)*
+
+After this step, each protocol's trigger phrase MUST be recognized by the
+host runtime. Registration mechanism depends on the runtime.
+
+**Cowork / Codex:** the protocol(s) are folded into the SKILL.md that the
+runtime adapter installs in Step 7. Their trigger phrases live in the
+skill's `description:` frontmatter (Cowork) or AGENTS.md stanza (Codex)
+and the platform's matcher picks them up automatically. No separate
+registration needed.
+
+**Claude Code / Cursor:** read each protocol file and register it manually:
+
+**`start-review.md`**
+- Trigger: "start code review"
+- Alias: "review this PR"
+- Alias: "review this MR"
+- Alias: "submit review"
+- Alias: "do code review"
+- Alias: "make a code review"
+- Register as a slash command, skill, or remembered instruction.
+
+## 10. Confirm Installation
+*Tier: 2 (required outcome)*
+
+After this step, the user MUST know what was installed, what was degraded
+(if anything), and how to invoke the workflow.
+
+Summarize to the user:
+
+- Scripts installed
+- Skill(s) installed and registered with the host runtime
+- Artifact(s) set up
+- Protocol registered: "start code review"
+- Any missing dependencies and their impact on the workflow
+
+**How to use:**
+- Say **"start code review"** to trigger the start-review workflow.
+
+## 11. Write installed.json
+*Tier: 1 (mechanical)*
+
+Write `{{config.install_dir}}/installed.json` with:
+
+```json
+{
+  "package": "ai-code-review-flow",
+  "version": "<NEW>",
+  "installed_at": "<current ISO-8601 timestamp>",
+  "platform": "<detected platform — cowork / claude-code / codex / etc.>",
+  "a3ip_spec": "1.9",
+  "config_dir": "{{config.install_dir}}",
+  "install_method": "<cowork-skill | generic-copy>"
+}
+```
+
+Per spec v1.9 (inherited from v1.8): `install_method` is required;
+`upgraded_from`, `source_bundle`, and `backup_dir` are optional but should
+be included by adapters that use them (see Cowork Step C6 and Codex Step C6
+for examples).
+
+This is the canonical install record. The next install/upgrade of this
+package looks for this file at `{{config.install_dir}}/installed.json` —
+if present, it runs the Upgrading flow instead of a fresh install.
+
+
+---
+
+## Platform-Specific Notes
+
+### Cowork (primary platform)
+Full support for artifacts, skills, and scheduled tasks. Skill installs via
+the Personal Skills UI; the platform's matcher auto-discovers trigger
+phrases from `description:` frontmatter.
+
+### Codex
+Skills live at `~/.codex/skills/<name>/` but require an AGENTS.md stanza to
+be discoverable. The runtime adapter handles this; see Step 7.
+
+### Claude Code (CLI)
+Full protocol support. Artifacts degrade to markdown files. Use cron or a
+system scheduler for automated tasks.
+
+### Other platforms
+Core protocols work on any platform. Adapt as needed.
+
+---
+
+## Upgrading
+
+When `installed.json` is found at `{{config.install_dir}}/installed.json`,
+follow these steps instead of the full install.
+
+### Step U1 — Read installed version
+Read `{{config.install_dir}}/installed.json`. Note the `version` field.
+
+### Step U2 — Apply CHANGELOG steps
+Find all version entries in `CHANGELOG.md` newer than the installed version.
+Apply them in order from oldest to newest. For each version entry:
+1. Check `### Breaking changes` — if any, tell the user before proceeding.
+2. Check `### Config changes` — if new required keys, run the config wizard
+   for those keys only.
+3. Follow `### Upgrade steps` exactly.
+
+### Step U3 — Update installed.json
+After all upgrade steps complete, overwrite `{{config.install_dir}}/installed.json`
+with the new `version` and `installed_at` timestamp. Preserve the existing
+`platform`, `a3ip_spec`, and `config_dir` fields.
+
+### Step U4 — Confirm
+Tell the user the versions upgraded from and to, and the changes applied.
+
+Do **not** run the full install sequence during an upgrade.
+Apply only the delta steps listed in CHANGELOG.md.
+
+=== END FILE ===
+
+=== FILE: README.md ===
+# ai-code-review-flow
+
+Generic GitLab/GitHub code review workflow. The AI reads a merge/pull request diff, applies a structured review checklist, and posts the review comment via REST API. Platform and project are chosen at install time.
+
+## Workflows
+
+- **"start code review"** — Reads the current MR/PR diff, applies the review checklist, posts the structured review comment to GitLab or GitHub, and updates the Last Review artifact.
+
+## Installation
+
+This is an A3IP package. To install it, give the `.a3ip.bundle` file to
+your AI assistant and ask it to install the package.
+
+The AI will guide you through the configuration wizard and set everything up.
+
+## Platforms
+
+- cowork
+- claude-code
+- codex
+- cursor
+
+## Author
+
+Maksym Prydorozhko <maksym.prydorozhko@gmail.com>
+
+=== END FILE ===
+
+=== FILE: adapters/os/posix/file-ops.md ===
+# POSIX (macOS / Linux) file operations -- tool selection
+
+This adapter governs filesystem operations on a POSIX host.
+
+## Tool selection for `~`-prefixed paths
+
+On POSIX, `~` is the user's home. Most tools handle it natively:
+
+| Tool | `~` expansion |
+|---|---|
+| Python `os.path.expanduser('~')` | YES |
+| Shell `$HOME` | YES |
+| `mcp__filesystem` if available | YES |
+
+No special precautions needed.
+
+## Persistent locations
+
+`~/.claude/packages/<name>/` (Cowork / Claude Code) or
+`~/.codex/packages/<name>/` (Codex).
+
+=== END FILE ===
+
+=== FILE: adapters/os/windows/file-ops.md ===
+# Windows file operations -- tool selection
+
+This adapter governs filesystem operations on a Windows host. Other axes (AI
+runtime) live in `adapters/runtime/<name>/`.
+
+## Tool selection for `~`-prefixed paths
+
+On Windows, `~` is the user's home (typically `C:/Users/<user>/`). Different
+tools handle `~` differently:
+
+| Tool | `~` expansion on Windows |
+|---|---|
+| `mcp__filesystem__read_file` / `__write_file` | YES |
+| Windows-native Python `os.path.expanduser('~')` | YES |
+| Cowork bash sandbox | NO -- resolves to ephemeral Linux sandbox home |
+| Read tool (raw `~/...`) | NO |
+
+**Rule:** for reading/writing persistent files at `~`-prefixed paths on a
+Windows host, use a YES-row tool.
+
+## Persistent locations
+
+`C:/Users/<user>/.claude/packages/<name>/` (Cowork / Claude Code) or
+`C:/Users/<user>/.codex/packages/<name>/` (Codex).
+
+=== END FILE ===
+
+=== FILE: adapters/runtime/codex/install-skill.md ===
+# Codex runtime adapter — ai-code-review-flow
+
+This adapter is platform-knowledge for installing `ai-code-review-flow` on
+**Codex** (OpenAI's coding agent). The installing AI reads this as context,
+then applies it to satisfy the Tier 2 outcomes in INSTALL.md — specifically
+Step 7 (make skills discoverable), Step 8 (make artifacts available), and
+Step 9 (make protocols invocable). The rest of INSTALL.md still applies —
+Step 1 (install detection), Step 4 (configure wizard), Step 5 (resolve
+install_dir), Step 6 (write config.json), Step 11 (write installed.json),
+and the Upgrading flow — all governed by INSTALL.md and the A3IP spec, not
+by this adapter.
+
+Per A3IP spec v1.9 'Writing Adapter Documents', adapter content is platform
+knowledge, not installation script. The code blocks below are illustrative
+worked examples — adapt them to actual paths, AGENTS.md state, and user
+choices rather than executing them verbatim.
+
+## How Codex discovers skills (critical convention)
+
+This is the single most important thing to know about installing skills on
+Codex, and the gap that caused the v1.2.x install failure: **Codex does
+NOT auto-discover files in `~/.codex/skills/`**. Dropping files there is
+necessary but not sufficient. The host runtime needs to be told about the
+skill through Codex's persistent-instructions mechanism, which is
+**`~/.codex/AGENTS.md`**.
+
+`~/.codex/AGENTS.md` is the global AGENTS.md file Codex loads at every
+session start as a persistent system instruction. For Codex to recognise
+the "start code review" trigger and follow the SKILL.md protocol, that
+SKILL.md path must be referenced in AGENTS.md. Without an AGENTS.md
+stanza, the user can say "start code review" and Codex will improvise a
+generic review of the workspace instead of loading the installed skill —
+exactly the failure mode we tripped over in 2026-05-21.
+
+The conventions are:
+
+- **Skill files live at `~/.codex/skills/<name>/`** — one directory per
+  skill. The directory must contain `SKILL.md` at its root (Codex looks
+  for SKILL.md there, not under `components/`).
+- **AGENTS.md at `~/.codex/AGENTS.md`** is where the skill gets registered.
+  It is a plain markdown file; multiple skills can be registered side by
+  side. The file may already have unrelated content from other
+  installations or the user — preserve it.
+- **Registration convention:** an A3IP stanza wrapped in marker comments
+  so re-installs and uninstalls can replace or remove the block cleanly.
+  The marker shape is:
+
+      <!-- a3ip:<package-name>:start -->
+      ## a3ip skill: <package-name>
+      When the user says <trigger phrases>, read and follow
+      <absolute path to SKILL.md>. That file is authoritative.
+      <!-- a3ip:<package-name>:end -->
+
+  An installing AI on a fresh machine (no existing AGENTS.md) creates the
+  file. On a machine with existing AGENTS.md content, it appends the
+  marker block at the end. On re-install, it locates the existing marker
+  block by name and replaces its contents in place.
+
+## Other Codex conventions
+
+**Per-install state** lives at `{{config.install_dir}}` (typically
+`~/.codex/packages/ai-code-review-flow/`). This is where `config.json`,
+`installed.json`, and `last-review.md` live. These paths are governed by
+INSTALL.md and the A3IP spec, not by this adapter.
+
+**No HTML artifact mechanism.** Codex has no equivalent of Cowork's
+`mcp__cowork__create_artifact`. The Last Review "artifact" degrades to a
+markdown file the runtime updates in-place at
+`{{config.install_dir}}/last-review.md`. The SKILL.md still treats it as a
+single named record — same purpose, different medium. Seed it from
+`components/artifacts/last-review/artifact.md` at install time.
+
+**No "Save skill" UI.** Skills install as plain files; there's no UI
+button, no Personal Skills registry, no restart required for skill
+changes to take effect. The next Codex session reads files fresh — but
+only if AGENTS.md tells it to.
+
+**`install_method: "generic-copy"`** in `installed.json` per A3IP spec
+v1.9 Platform Conventions, distinguishing the Codex flow from Cowork's
+`"cowork-skill"` UI flow.
+
+**Direct PowerShell on Windows.** Codex on Windows talks to the native
+filesystem directly; `$env:USERPROFILE` is the Windows user home with no
+sandbox layer. `~`-expansion is unambiguous. (Contrast with Cowork's bash
+sandbox, where `~` resolves to an ephemeral Linux home.)
+
+## What gets installed where
+
+| Artifact | Codex location | Mechanism |
+|---|---|---|
+| Skill payload (SKILL.md + scripts/) | `~/.codex/skills/ai-code-review-flow/` | File copy |
+| Skill registration | `~/.codex/AGENTS.md` (stanza appended) | Marker-bounded block, points at the SKILL.md absolute path |
+| Per-install state | `{{config.install_dir}}` | config.json, installed.json, last-review.md |
+| Last Review record | `{{config.install_dir}}/last-review.md` | Markdown table the runtime rewrites after each review |
+
+## Worked example: the install flow on Codex
+
+The steps below are illustrative — they describe one way to achieve the
+Tier 2 outcomes on Codex. The install AI may adapt for variations (e.g.,
+the user's install_dir, an existing AGENTS.md with unrelated content, an
+older a3ip CLI requiring `$env:PYTHONIOENCODING = 'utf-8'`).
+
+### Step C1: Detect prior install
+
+Look at `{{config.install_dir}}/installed.json`. On Windows under Codex
+use a tool that expands `~` to the Windows user home (`$env:USERPROFILE`
+in PowerShell or `os.path.expanduser('~')` in Python). See
+`adapters/os/windows/file-ops.md` for canonical tool-selection guidance.
+
+- **Found:** read the `version` field. Go to **Upgrading an existing
+  Codex install** at the end of this document.
+- **Not found:** continue with fresh install.
+
+### Step C2: Extract bundle to a temp directory and validate
+
+Before touching `~/.codex/skills/`, unpack the `.a3ip.bundle` into a temp
+working directory and run `a3ip validate` against the unpacked tree. This
+catches bundle-parsing issues before they affect the live install.
+
+```
+$bundle = "<path to ai-code-review-flow-vX.Y.Z.a3ip.bundle>"
+$work   = "$env:TEMP\ai-code-review-flow-vX.Y.Z-extracted"
+Remove-Item -LiteralPath $work -Recurse -Force -ErrorAction SilentlyContinue
+New-Item -ItemType Directory -Path $work -Force
+```
+
+Parse the bundle (line-delimited `=== FILE: <path> ===` / `=== END FILE ===`
+blocks) and write each file under `$work`. Then:
+
+```
+a3ip validate $work
+```
+
+If validation fails, do NOT proceed to overwriting the live skill
+directory. Fix or escalate.
+
+### Step C3: Back up existing skill (if upgrading)
+
+If `~/.codex/skills/ai-code-review-flow/` exists, back it up before
+overwriting. A timestamped folder under `~/.codex/backups/` is the
+convention; tell the user the backup path so they can roll back.
+
+### Step C4: Install the skill payload
+
+Replace the live skill directory with the validated extraction. The
+runtime payload is everything SKILL.md needs at runtime: SKILL.md itself
+(lifted to the skill root), the scripts it invokes, and the artifact
+template it reads.
+
+Lift `components/skills/code-review/SKILL.md` to `<skill>/SKILL.md` (the
+skill root) — Codex looks there, not in `components/`. Then substitute
+the absolute `install_dir` into all markdown files in the installed
+skill (SKILL.md plus any protocol files that reference `{{install_dir}}`).
+Rationale: `install_dir` is a non-secret deterministic path — substituting
+it at install time is the only way the runtime AI knows where to read
+config.json. Other config keys (api_token, project_ref, etc.) are NOT
+substituted; they stay in config.json so the skill remains portable
+across config changes.
+
+**Path-separator normalization (required).** The `install_dir` value
+sourced from `CONFIGURE.md` or a prior `installed.json` may end with a
+trailing path separator (`\` or `/`). The SKILL.md template references
+files as `{{install_dir}}/config.json` with a leading `/`. A naive
+substitution of a trailing-separator value into a leading-slash template
+produces a malformed mixed-slash path on Windows (e.g.
+`C:\Users\me\.codex\packages\ai-code-review-flow\/config.json`), which
+Codex's runtime file APIs reject. Strip trailing `/` and `\` from
+`$installDir` before substituting so the join is well-formed.
+
+Illustrative (adapt paths and install_dir literal):
+
+```
+$skill = "$env:USERPROFILE\.codex\skills\ai-code-review-flow"
+$installDir = "<absolute install_dir from CONFIGURE.md>"
+$installDir = $installDir.TrimEnd('/', '\')  # see normalization note above
+
+Remove-Item -LiteralPath $skill -Recurse -Force -ErrorAction SilentlyContinue
+New-Item -ItemType Directory -Path $skill -Force
+Copy-Item -Path (Join-Path $work '*') -Destination $skill -Recurse -Force
+Copy-Item -LiteralPath (Join-Path $work 'components\skills\code-review\SKILL.md') `
+          -Destination (Join-Path $skill 'SKILL.md') -Force
+
+Get-ChildItem -LiteralPath $skill -Recurse -Filter '*.md' | ForEach-Object {
+    $text = Get-Content -LiteralPath $_.FullName -Raw
+    if ($text -match '\{\{install_dir\}\}') {
+        $text = $text -replace '\{\{install_dir\}\}', $installDir
+        Set-Content -LiteralPath $_.FullName -Value $text -Encoding UTF8
+    }
+}
+```
+
+PowerShell quirk to be aware of: `-LiteralPath` does NOT expand wildcards.
+Use `-Path` when copying with `*`, `-LiteralPath` only when you have an
+exact filename. Mixing these incorrectly produces a silent partial copy
+where only one file is moved.
+
+### Step C5: Register the skill in AGENTS.md (THIS IS THE CRITICAL STEP)
+
+Without this step, Step C4's files exist but are not discoverable. Codex
+will not recognise "start code review" as a skill trigger.
+
+Append (or upsert) a marker-bounded stanza to `~/.codex/AGENTS.md`. If
+the file does not exist, create it. If it exists with unrelated content,
+preserve that content and append the stanza. If it already contains an
+`ai-code-review-flow` marker block from a prior install, replace its
+contents between the markers in place.
+
+Illustrative (adapt the absolute SKILL.md path):
+
+```
+$agentsPath = "$env:USERPROFILE\.codex\AGENTS.md"
+$skillMd    = "$env:USERPROFILE\.codex\skills\ai-code-review-flow\SKILL.md"
+
+$stanza = @"
+<!-- a3ip:ai-code-review-flow:start -->
+## a3ip skill: ai-code-review-flow
+
+When the user says any of "start code review", "review this PR",
+"review this MR", "submit review", "do code review", or "make a code
+review", read and follow $skillMd. That file is authoritative; do not
+improvise a generic workspace review.
+
+Config for this skill lives at $installDir\config.json.
+<!-- a3ip:ai-code-review-flow:end -->
+"@
+
+# Read existing AGENTS.md (or empty string if missing)
+if (Test-Path -LiteralPath $agentsPath) {
+    $current = Get-Content -LiteralPath $agentsPath -Raw
+} else {
+    $current = ""
+    New-Item -ItemType Directory -Path (Split-Path $agentsPath) -Force | Out-Null
+}
+
+# Upsert: replace existing marker block if present, else append
+$pattern = '(?ms)<!-- a3ip:ai-code-review-flow:start -->.*?<!-- a3ip:ai-code-review-flow:end -->'
+if ($current -match $pattern) {
+    $updated = [regex]::Replace($current, $pattern, [System.Text.RegularExpressions.Regex]::Escape($stanza) -replace '\\', '')
+} else {
+    $updated = if ($current.Trim()) { "$current`n`n$stanza`n" } else { "$stanza`n" }
+}
+Set-Content -LiteralPath $agentsPath -Value $updated -Encoding UTF8
+```
+
+**Verification (the install AI should self-check after C5):** open
+AGENTS.md and confirm the marker block is present with the absolute
+SKILL.md path filled in. If the path is still a literal placeholder,
+substitution failed; re-run the step with the resolved install_dir.
+
+### Step C6: Initialize the Last Review record
+
+Create the markdown file the runtime will keep up to date. This is the
+Codex-side stand-in for the Cowork `last-review` artifact: same purpose
+(one record, updated after each review), different medium.
+
+```
+$record = Join-Path $installDir 'last-review.md'
+if (-not (Test-Path -LiteralPath $record)) {
+    Copy-Item -LiteralPath (Join-Path $work 'components\artifacts\last-review\artifact.md') `
+              -Destination $record -Force
+}
+```
+
+If `last-review.md` already exists (from a previous install), leave it in
+place — it carries the user's most recent review state. The SKILL.md
+updates the file in place after each review.
+
+### Step C7: Write installed.json
+
+Per A3IP spec v1.9 Platform Conventions, Codex installs use
+`install_method: "generic-copy"`:
+
+```json
+{
+  "package": "ai-code-review-flow",
+  "version": "<NEW>",
+  "installed_at": "<ISO-8601 timestamp>",
+  "upgraded_from": "<previous version, or omit if fresh install>",
+  "platform": "codex",
+  "a3ip_spec": "1.9",
+  "config_dir": "{{config.install_dir}}",
+  "install_method": "generic-copy",
+  "source_bundle": "<absolute path to the .a3ip.bundle used>",
+  "backup_dir": "<absolute path to backup from C3, or omit if fresh>"
+}
+```
+
+Per spec: `upgraded_from`, `source_bundle`, and `backup_dir` are optional;
+include them when applicable. Readers MUST tolerate their absence.
+
+### Step C8: Verify the install end-to-end
+
+Two confirmations:
+
+1. **Static:** `a3ip validate $skill` should report `[OK] Validation passed`.
+2. **Runtime:** start a NEW Codex session (so AGENTS.md is freshly loaded)
+   and say "start code review". The AI should recognise the trigger, read
+   config from `<install_dir>/config.json`, and ask for the MR/PR number.
+   If it instead improvises a generic workspace review, the AGENTS.md
+   registration (Step C5) didn't take — re-check that file.
+
+### Step C9: Clean up
+
+```
+Remove-Item -LiteralPath $work -Recurse -Force -ErrorAction SilentlyContinue
+```
+
+## Upgrading an existing Codex install
+
+Triggered when Step C1 found `{{install_dir}}/installed.json`.
+
+1. Read the `version` field. Determine which CHANGELOG entries need to
+   apply (everything between installed version and the bundle's version).
+2. Apply each version's `### Upgrade steps` in order. For
+   `ai-code-review-flow` on Codex this is usually just "replace the skill
+   files" — Steps C2 through C8 above suffice for any minor/patch
+   upgrade. The `last-review.md` record is preserved through Step C6's
+   idempotency. The AGENTS.md stanza is upserted in place by Step C5.
+3. For major bumps or breaking changes (per CHANGELOG `### Breaking
+   changes`), follow the explicit instructions in that version's
+   changelog entry before re-running C2–C8. If config keys changed,
+   re-run the wizard for those keys and rewrite `config.json` before
+   reinstalling the skill payload.
+4. Update `installed.json` (Step C7) with the new version and
+   `upgraded_from` = previous version. Preserve `config_dir`,
+   `install_method`, optionally bump `a3ip_spec` and `backup_dir`.
+
+## Troubleshooting
+
+**`a3ip` command not on PATH after `pip install --user`:** find the binary
+at `$env:APPDATA\Python\Python<XY>\Scripts\a3ip.exe` and invoke explicitly,
+or add that directory to PATH. (Note: this package does not require
+`a3ip` at runtime — only the install AI uses it for `a3ip validate`.)
+
+**Skill files installed but "start code review" still triggers generic
+review:** this is the v1.2.x failure mode. Step C5 (AGENTS.md
+registration) was skipped or the marker block did not get the absolute
+SKILL.md path substituted. Open `~/.codex/AGENTS.md` and confirm the
+`ai-code-review-flow` marker block is present with the absolute path.
+
+**PowerShell `-LiteralPath` + wildcard quietly skips most files:** use
+`-Path` for wildcard copies; reserve `-LiteralPath` for exact filenames.
+After any `Copy-Item -Recurse`, verify by listing the destination.
+
+**Skill triggers but `post_review.py` can't find config:** SKILL.md still
+contains a literal `{{install_dir}}` because Step C4's substitution was
+skipped. Re-run Step C4, ensuring `$installDir` is the absolute path the
+user chose during CONFIGURE.md.
+
+**Last Review record never updates:** the skill writes via
+`Set-Content -LiteralPath "$installDir\last-review.md"`. Confirm the
+path is correct and the user account has write permission to
+`{{config.install_dir}}`.
+
+**Unicode crash when running validate:** upgrade to a3ip CLI 1.3.1 or
+higher (`pip install --upgrade --user a3ip`). v1.3.1+ uses ASCII-safe
+console output by default. Workaround for older versions:
+`$env:PYTHONIOENCODING = 'utf-8'`.
+
+=== END FILE ===
+
+=== FILE: adapters/runtime/cowork/install-skill.md ===
+# Cowork runtime adapter — ai-code-review-flow
+
+This adapter is platform-knowledge for installing `ai-code-review-flow` on
+Cowork. The installing AI reads this as context, then applies it to satisfy
+the Tier 2 outcomes in INSTALL.md — specifically Step 7 (make skills
+discoverable), Step 8 (make artifacts available), and Step 9 (make protocols
+invocable). The rest of INSTALL.md still applies — Step 1 (install detection),
+Step 4 (configure wizard), Step 5 (resolve install_dir), Step 6 (write
+config.json), Step 11 (write installed.json), and the Upgrading flow — all
+governed by INSTALL.md and the A3IP spec, not by this adapter.
+
+Per A3IP spec v1.9 'Writing Adapter Documents', adapter content is platform
+knowledge, not installation script. The code blocks below are illustrative
+worked examples — adapt them to actual paths and user choices rather than
+executing them verbatim.
+
+## How Cowork discovers and registers skills
+
+Cowork's **Personal Skills UI** is the registration mechanism. A skill placed
+directly into Cowork's skills folder outside of this UI flow will be ignored
+or overwritten when Cowork regenerates its internal skill registry on
+restart. The right path is:
+
+1. Build a `.skill` zip containing SKILL.md at the archive root plus any
+   bundled runtime resources (scripts, artifact templates) in subdirectories.
+2. Present the zip via `mcp__cowork__present_files` so the user gets a
+   **"Save skill"** button in the chat UI.
+3. After the user clicks Save skill and restarts Cowork, the skill appears in
+   Personal Skills and is available in every session and project. The
+   restart is required — Cowork's skill registry only refreshes on startup.
+
+Cowork also discovers trigger phrases from the SKILL.md's `description:`
+frontmatter automatically; no separate protocol registration is needed. This
+is why Step 9 (make protocols invocable) is a no-op on Cowork once Step 7
+completes.
+
+Per-package state (config.json, installed.json, scripts) still lives at
+`{{config.install_dir}}` per the spec — the `.skill` zip is the Cowork
+mechanism for registering the skill globally, not a replacement for the
+spec install directory.
+
+## What a .skill file is
+
+A `.skill` file is a zip archive containing SKILL.md at the root plus any
+bundled resources (scripts, artifact templates) in subdirectories.
+
+Valid SKILL.md frontmatter fields for Cowork:
+`allowed-tools`, `compatibility`, `description`, `license`, `metadata`, `name`
+
+Cowork rejects `version:` and `scripts_dir:`. Strip these from the bundled
+SKILL.md before packaging — see Step C1 below.
+
+## How Cowork handles artifacts
+
+Cowork has a first-class artifact registry. The installing AI calls
+`mcp__cowork__create_artifact` during install, and the artifact appears in
+the user's sidebar immediately — not on first use. The runtime updates it
+via `mcp__cowork__update_artifact` on every review. This is why the Codex
+adapter degrades the artifact to a markdown file (it lacks this mechanism)
+while the Cowork adapter creates an interactive HTML card.
+
+## Worked example: the install flow on Cowork
+
+The steps below are illustrative — they describe one way to achieve the
+Tier 2 outcomes on Cowork. The install AI may adapt for variations (e.g.,
+the user chose a non-default install_dir, the bundle was extracted differently,
+the artifact was already created in a prior install).
+
+### Step C1: Prepare SKILL.md — strip frontmatter and substitute install_dir
+
+Two transformations on the bundled `components/skills/code-review/SKILL.md`
+before packaging:
+
+1. **Strip frontmatter fields Cowork rejects** (`version:`, `scripts_dir:`).
+2. **Substitute the `{{install_dir}}` placeholder** with the absolute
+   installation path the user chose (resolved in INSTALL.md Step 5).
+   Substitution is appropriate here because `install_dir` is a path
+   (non-secret, deterministic per install). Do NOT substitute api_token,
+   project_ref, platform, or base_url — those stay in config.json so the
+   skill remains portable across config changes.
+
+**Path-separator normalization (required).** The `install_dir` value
+sourced from `CONFIGURE.md` or a prior `installed.json` may end with a
+trailing path separator (`/` or `\`) — this is a normal operator habit on
+Windows in particular. The SKILL.md template uses references like
+`{{install_dir}}/config.json` with a leading `/`. A naive string-replace
+of a trailing-separator value into a leading-slash template produces a
+malformed path with a doubled or mixed separator (e.g.
+`C:\Users\me\.claude\packages\ai-code-review-flow\/config.json`). POSIX
+hides the symptom because the kernel collapses `//`; Windows path APIs
+(including the Read tool used by the runtime AI) reject the mixed form.
+Always strip trailing `/` and `\` from `install_dir` before substituting
+so the resulting join is well-formed on every host OS.
+
+Illustrative (adapt the install_dir literal):
+
+```python
+import re
+
+install_dir_abs = "<absolute path resolved in INSTALL.md Step 5>"
+install_dir_norm = install_dir_abs.rstrip("/\\")  # see normalization note above
+
+skill_md = open("components/skills/code-review/SKILL.md", encoding="utf-8").read()
+skill_md = re.sub(r'^(version|scripts_dir):.*\n', '', skill_md, flags=re.MULTILINE)
+skill_md = skill_md.replace("{{install_dir}}", install_dir_norm)
+
+assert "{{install_dir}}" not in skill_md, "install_dir placeholder still in SKILL.md"
+open("/tmp/SKILL_clean.md", "w", encoding="utf-8").write(skill_md)
+```
+
+### Step C2: Package the runtime payload as a .skill zip
+
+The `.skill` archive contains **everything the skill needs at runtime** —
+nothing more, nothing less. The runtime payload is derived from reading the
+cleaned SKILL.md: scripts it invokes, artifact templates it reads, local
+docs it falls back to, prompts or templates it expands. Repository
+scaffolding that exists only for source-tree maintenance (git metadata,
+`.a3ip-source.json`, `__pycache__/`, top-level developer-facing README,
+INSTALL.md / CONFIGURE.md consumed at install time) is NOT part of the
+runtime payload.
+
+Layout convention for `ai-code-review-flow`: SKILL.md sits at the archive
+root (where Cowork loads it from); helper files referenced by relative
+path in SKILL.md go in matching paths under the root. For this package
+the SKILL.md reads `scripts/post_review.py` and the artifact templates
+`artifact.html` / `artifact.md` from the skill's own directory, so:
+
+- `SKILL.md` (cleaned from Step C1) → archive root
+- `scripts/post_review.py` → `scripts/` in the archive
+- `components/artifacts/last-review/artifact.html` → `artifact.html` at root
+- `components/artifacts/last-review/artifact.md` → `artifact.md` at root
+
+Note that artifact files move to the archive root, not `components/...` —
+that's where the runtime SKILL.md looks for them. This is a deliberate
+re-layout: source tree organization (`components/artifacts/<name>/`)
+differs from the runtime layout the skill expects. The install adapter
+is the one place that knows about both.
+
+Illustrative (adapt paths to actual bundle extraction):
+
+```python
+import zipfile, pathlib
+
+pkg_dir = pathlib.Path(".")  # run from inside the ai-code-review-flow.a3ip/ directory
+out_path = pathlib.Path("/tmp/ai-code-review-flow.skill")
+
+with zipfile.ZipFile(out_path, "w", zipfile.ZIP_DEFLATED) as zf:
+    zf.write("/tmp/SKILL_clean.md", "SKILL.md")
+
+    for f in sorted((pkg_dir / "scripts").rglob("*")):
+        if f.is_file() and "__pycache__" not in f.parts:
+            zf.write(f, f.relative_to(pkg_dir))
+
+    artifact_dir = pkg_dir / "components" / "artifacts" / "last-review"
+    if artifact_dir.is_dir():
+        for f in sorted(artifact_dir.iterdir()):
+            if f.is_file():
+                zf.write(f, f.name)
+```
+
+The principle is *bundle what the skill uses at runtime*, derived from
+reading SKILL.md, then place each piece where SKILL.md expects to find it.
+
+### Step C3: Create the Last Review artifact
+
+The Last Review card must exist in Cowork's artifact registry before the
+user starts the first review. Create it now (during install) in the current
+Cowork session so it appears immediately.
+
+1. Read `components/artifacts/last-review/artifact.html` from the bundle.
+2. Call `mcp__cowork__list_artifacts` to check whether a `last-review`
+   artifact already exists (idempotency for re-installs).
+3. If it does not exist, call `mcp__cowork__create_artifact`:
+
+```
+mcp__cowork__create_artifact
+  name: "last-review"
+  content: <full HTML content of artifact.html>
+```
+
+If an artifact named `last-review` already exists (from a previous install),
+leave it in place — it may contain the user's most recent review state.
+The skill updates it via `mcp__cowork__update_artifact` on every review.
+
+### Step C4: Present the .skill to the user
+
+Copy the `.skill` file to the Cowork outputs directory (session scratchpad),
+then call `mcp__cowork__present_files`. This renders an interactive card
+with a **"Save skill"** button.
+
+```
+mcp__cowork__present_files  ->  file_path: <outputs_dir>/ai-code-review-flow.skill
+```
+
+Tell the user:
+> "Click the **Save skill** button on the card to install ai-code-review-flow
+> into Cowork. Once you've saved it, restart Cowork — the skill will appear
+> in Personal Skills and will be available in every project.
+>
+> The Last Review card is already in your artifacts list — it will update
+> automatically after your first review."
+
+### Step C5: Verify after restart
+
+After the user restarts Cowork, confirm the skill appears in Personal
+Skills. Then verify end-to-end by saying:
+
+> "start code review"
+
+The AI should recognise the trigger, read config from
+`<install_dir>/config.json`, and ask for the MR/PR number.
+
+### Step C6: Write installed.json for Cowork installs
+
+Cowork installs MUST set `install_method: "cowork-skill"` in installed.json
+so future upgrades know to rebuild the `.skill` rather than patch files
+in place:
+
+```json
+{
+  "package": "ai-code-review-flow",
+  "version": "<NEW>",
+  "installed_at": "<ISO timestamp>",
+  "platform": "cowork",
+  "a3ip_spec": "1.9",
+  "config_dir": "{{config.install_dir}}",
+  "install_method": "cowork-skill"
+}
+```
+
+Write this file at `{{config.install_dir}}/installed.json` per spec.
+
+## Upgrading an existing Cowork install
+
+Triggered by INSTALL.md Step 1 finding `installed.json` at
+`{{config.install_dir}}/installed.json` with `install_method: "cowork-skill"`.
+
+1. **Read installed version** from `installed.json` (this is Step U1 of the
+   spec Upgrading flow).
+2. **Apply CHANGELOG steps** (Step U2). For each version between installed
+   and current, follow `### Upgrade steps` exactly. Note any config changes —
+   if a new required key is added, run the configure wizard for that key
+   only and write back to `config.json`.
+3. **Rebuild the `.skill` file** from the new bundle (Steps C1–C2 above).
+4. **(Idempotent)** check the Last Review artifact still exists via
+   `mcp__cowork__list_artifacts`; create if missing (Step C3 above).
+5. **Present the new `.skill`** via `mcp__cowork__present_files` (Step C4).
+6. **Tell the user:**
+   > "An updated version is ready. Click **Save skill** to replace the
+   > existing one, then restart Cowork. Cowork will use the new version
+   > automatically. Your config.json at `{{config.install_dir}}/config.json`
+   > is unchanged."
+7. **After the user confirms restart,** overwrite `installed.json` (Step U3
+   of the spec) with the new `version` and `installed_at` timestamp,
+   preserving `platform`, `a3ip_spec`, `config_dir`, and `install_method`.
+
+## Troubleshooting
+
+**Install AI reports "fresh install" but the user expected an upgrade** —
+Step 1 of INSTALL.md checks `{{config.install_dir}}/installed.json`. If
+that file is missing (e.g. a prior install didn't complete past Step 11),
+detection correctly returns fresh-install. Confirm with the user whether
+a prior install attempt completed.
+
+**"Save skill" button not visible** — the `.skill` file must be under the
+outputs directory or a connected folder to be presentable via
+`present_files`.
+
+**Skill saves but doesn't trigger on "start code review"** — confirm Cowork
+was restarted after saving. The skill registry only refreshes on restart.
+
+**Script `post_review.py` fails with "config file not found"** — the skill
+expects `<install_dir>/config.json`. Confirm INSTALL.md Step 5 (Resolve
+install_dir) and Step 6 (Install Scripts) ran successfully. The user can
+re-run the configure wizard at any time to rewrite the file.
+
+**Last Review card doesn't appear after install** — Step C3 was skipped or
+`mcp__cowork__create_artifact` failed. Re-run Step C3. The artifact lives
+in Cowork's artifact registry, not in the skill zip, so it persists
+independently of the skill itself.
+
+**Skill disappears after Cowork restart** — it was not registered through
+the UI flow. Repeat Steps C1–C4 and use **Save skill**, not a manual file
+copy.
+
+=== END FILE ===
+
+=== FILE: components/artifacts/last-review/artifact.html ===
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Last Code Review</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: transparent; color: #1a1a2e; padding: 16px;
+    }
+    .card {
+      border: 1px solid #e5e7eb; border-radius: 12px;
+      padding: 20px 24px 18px; max-width: 460px;
+      background: #ffffff; box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+    }
+    .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .card-label  { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #9ca3af; }
+    .badge       { font-size: 0.72rem; font-weight: 600; padding: 3px 11px; border-radius: 20px; white-space: nowrap; }
+    .badge-approved  { background: #dcfce7; color: #166534; }
+    .badge-needs     { background: #fee2e2; color: #991b1b; }
+    .badge-commented { background: #fef9c3; color: #854d0e; }
+    .badge-empty     { background: #f3f4f6; color: #9ca3af; }
+    .mr-ref  { font-size: 1.6rem; font-weight: 700; line-height: 1.1; margin-bottom: 8px; }
+    .mr-ref a { color: #4f46e5; text-decoration: none; }
+    .mr-ref a:hover { text-decoration: underline; }
+    .notes { font-size: 0.84rem; color: #6b7280; line-height: 1.5; margin-bottom: 10px; }
+    .ts    { font-size: 0.72rem; color: #d1d5db; }
+    .empty-state { text-align: center; padding: 28px 0 20px; color: #d1d5db; font-size: 0.9rem; }
+    .empty-icon  { font-size: 2rem; margin-bottom: 8px; display: block; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="card-header">
+      <span class="card-label">Last Code Review</span>
+      <span class="badge badge-empty" id="verdict-badge">--</span>
+    </div>
+    <div id="empty-state" class="empty-state">
+      <span class="empty-icon">&#x1F4CB;</span>
+      No review posted yet.
+    </div>
+    <div id="review-data" style="display:none">
+      <div class="mr-ref" id="mr-ref">--</div>
+      <div class="notes"  id="notes-display"></div>
+      <div class="ts"     id="ts-display"></div>
+    </div>
+  </div>
+  <script>
+    /* LAST_REVIEW: the AI replaces this line via mcp__cowork__update_artifact after each review. */
+    /* DATA_START */var LAST_REVIEW = null;/* DATA_END */
+
+    function badgeClass(v) {
+      if (!v) return "badge-empty";
+      v = v.toLowerCase();
+      if (v === "approved") return "badge-approved";
+      if (v.indexOf("needs") !== -1 || v.indexOf("changes") !== -1) return "badge-needs";
+      if (v === "commented") return "badge-commented";
+      return "badge-empty";
+    }
+    function render(data) {
+      var badge   = document.getElementById("verdict-badge");
+      var empty   = document.getElementById("empty-state");
+      var dataDiv = document.getElementById("review-data");
+      var mrRef   = document.getElementById("mr-ref");
+      var notesEl = document.getElementById("notes-display");
+      var tsEl    = document.getElementById("ts-display");
+      if (!data || !data.mr) {
+        empty.style.display = ""; dataDiv.style.display = "none";
+        badge.textContent = "--"; badge.className = "badge badge-empty";
+        return;
+      }
+      empty.style.display = "none"; dataDiv.style.display = "";
+      badge.textContent = data.verdict || "--";
+      badge.className   = "badge " + badgeClass(data.verdict);
+      var label = String(data.mr).match(/^https?:\/\//)
+        ? "#" + String(data.mr).split("/").pop() : "#" + data.mr;
+      mrRef.innerHTML = data.link
+        ? "<a href=\"" + data.link + "\" target=\"_blank\">" + label + "</a>" : label;
+      notesEl.textContent = data.notes || "";
+      tsEl.textContent = data.ts ? "Reviewed " + new Date(data.ts).toLocaleString() : "";
+    }
+    render(LAST_REVIEW);
+  </script>
+</body>
+</html>
+
+=== END FILE ===
+
+=== FILE: components/artifacts/last-review/artifact.md ===
+---
+name: last-review
+description: "Card showing the most recent code review: MR/PR number, verdict (Approved / Needs Changes / Commented), reviewer notes summary, timestamp, and link."
+type: ui-view
+refresh: on-demand
+---
+
+## Last Code Review
+
+> Markdown fallback -- updated by the `start-review` protocol after each posted review.
+
+| Field   | Value |
+|---------|-------|
+| MR / PR | --    |
+| Verdict | --    |
+| Notes   | --    |
+| Link    | --    |
+| Posted  | --    |
+
+---
+
+*Run `start code review` to review a new MR/PR and update this card.*
+
+=== END FILE ===
+
+=== FILE: components/protocols/start-review.md ===
+---
+name: start-review
+trigger: "start code review"
+aliases:
+  - "review this PR"
+  - "review this MR"
+  - "submit review"
+  - "do code review"
+---
+
+## What this protocol does
+
+Reads the current MR/PR diff, applies the review checklist, posts the structured review comment to GitLab or GitHub, and updates the Last Review artifact.
+
+## Steps
+
+0. **Load config first.** Read `{{install_dir}}/config.json`. Extract:
+   `platform`, `project_ref`, `api_token`, `base_url`. The
+   `{{install_dir}}` placeholder is substituted to an absolute path at
+   install time by the runtime adapter. If the literal `{{install_dir}}`
+   remains here, the substitution step was skipped — stop and tell the user.
+1. Ask: "What is the MR/PR number (or URL)?"
+2. Fetch the diff:
+   - **GitLab**: `GET {{config.base_url}}/api/v4/projects/{{config.project_ref}}/merge_requests/<iid>/changes` with header `PRIVATE-TOKEN: {{config.api_token}}`
+   - **GitHub**: `GET https://api.github.com/repos/{{config.project_ref}}/pulls/<number>/files` with header `Authorization: Bearer {{config.api_token}}`
+3. Read the diff and apply every checklist category from the `code-review` skill (Correctness, Security, Performance, Code quality, Tests, Breaking changes, Documentation).
+4. Draft the structured review comment using the output format defined in the `code-review` skill. Assign a verdict: **Approved**, **Needs Changes**, or **Commented**.
+5. Show the full draft to the user and ask: "Shall I post this review?"
+6. On confirmation, run script `post_review` with arguments: `{{install_dir}}/config.json` `<mr_number>` `<review_body>` `<verdict>`. (The script re-reads config.json itself; pass the same path you used in Step 0.)
+7. Update the Last Review artifact with the review data. Build this JSON object first:
+   ```json
+   { "mr": <number>, "verdict": "<verdict>", "notes": "<one-line summary>",
+     "link": "<URL from post_review output>", "ts": "<ISO 8601 timestamp>" }
+   ```
+   Then update using whichever method fits the current platform:
+
+   - **Cowork**: call `mcp__cowork__list_artifacts` to find the artifact named "last-review",
+     then call `mcp__cowork__update_artifact` with the artifact ID. In the updated HTML,
+     replace the content between `/* DATA_START */` and `/* DATA_END */` with:
+     `var LAST_REVIEW = <JSON object>;`
+
+   - **Claude Code / Codex / Cursor / any platform with file write access**:
+     locate the installed `artifact.html` (same directory as `SKILL.md`), read it,
+     replace the content between `/* DATA_START */` and `/* DATA_END */` with:
+     `var LAST_REVIEW = <JSON object>;`
+     Write the file back. The user can open it in any browser to see the card.
+     Also update the table in `artifact.md` with the same values.
+
+   - **No file access / CLI-only**: show the updated `artifact.md` table in chat
+     so the user has a record of the review.
+
+8. Confirm to the user: "Review posted -- see it at [link]."
+
+## Config values used
+
+- `{{config.platform}}` -- `gitlab` or `github`
+- `{{config.project_ref}}` -- GitLab numeric project ID or GitHub `owner/repo` slug
+- `{{config.api_token}}` -- Personal access token (read from env var)
+- `{{config.base_url}}` -- GitLab base URL (only when platform is `gitlab`)
+
+## Outputs
+
+- A review comment posted to the MR/PR on GitLab or GitHub
+- Last Review artifact updated: HTML card (all file-capable platforms) and/or artifact.md table
+
+=== END FILE ===
+
+=== FILE: components/skills/code-review/SKILL.md ===
+---
+name: code-review
+description: "Reads an MR/PR diff, applies a 7-category review checklist, posts the structured review to GitLab or GitHub, and updates the Last Review record. Triggers: 'start code review', 'review this PR', 'review this MR', 'submit review', 'do code review'."
+---
+
+# code-review
+
+## When to use this skill
+
+Apply this skill whenever the user says one of the trigger phrases above —
+"start code review", "review this PR", "review this MR", "submit review",
+"do code review" — or otherwise asks for a code review of a merge / pull
+request.
+
+This skill is self-contained at runtime: it covers the full flow (read
+config → fetch diff → review → confirm → post → update Last Review record),
+plus the checklist, verdict criteria, and output format used for the review
+itself.
+
+---
+
+## Runtime setup — load config
+
+**Run this once at session start, before responding to any trigger phrase.**
+
+1. Read `{{install_dir}}/config.json`. The absolute install_dir is baked into
+   this SKILL.md at install time by the runtime adapter — by the time you
+   read this file, `{{install_dir}}` is a real absolute path (e.g.
+   `C:/Users/USERNAME/.claude/packages/ai-code-review-flow/` on Cowork or
+   `C:/Users/USERNAME/.codex/packages/ai-code-review-flow/` on Codex).
+
+   If the literal string `{{install_dir}}` appears below instead of an
+   absolute path, the install adapter's substitution step was skipped — stop
+   and tell the user the install is broken; do not try to guess the path.
+
+2. From config.json, load these keys into working memory for the session:
+   - `platform` — `gitlab` or `github`
+   - `project_ref` — GitLab numeric project ID, or GitHub `owner/repo` slug
+   - `api_token` — personal access token (treat as sensitive: do not echo,
+     do not include in logs or chat output)
+   - `base_url` — present only when `platform == gitlab`; defaults to
+     `https://gitlab.com` if absent or empty
+
+3. If config.json is missing, the install never completed past INSTALL.md
+   Step 6 (Write config.json). Tell the user:
+   > "I don't see config for this package at `{{install_dir}}/config.json`.
+   > The package may not be fully installed for this user yet — should I run
+   > the install wizard now?"
+   Point them at the bundle's INSTALL.md / CONFIGURE.md to complete a fresh
+   install. Do not improvise config values.
+
+The path to config.json (`{{install_dir}}/config.json`) is also what you pass
+as the first argument to `scripts/post_review.py` later — keep it handy.
+
+---
+
+## Workflow — start-review
+
+Triggered by any of: "start code review", "review this PR", "review this MR",
+"submit review", "do code review".
+
+### Step 1 — Ask for the MR/PR
+
+> "What is the MR/PR number (or URL)?"
+
+If the user gives a URL, parse the number from it. If they give just a
+number, use it directly.
+
+### Step 2 — Fetch the diff
+
+**GitLab** (`platform == gitlab`):
+
+```
+GET {base_url}/api/v4/projects/{project_ref}/merge_requests/<iid>/changes
+Header: PRIVATE-TOKEN: {api_token}
+```
+
+**GitHub** (`platform == github`):
+
+```
+GET https://api.github.com/repos/{project_ref}/pulls/<number>/files
+Header: Authorization: Bearer {api_token}
+```
+
+Use the values loaded in Runtime setup. Never paste the api_token into chat
+output.
+
+### Step 3 — Read the diff and apply the checklist
+
+Work through each category in order. Note issues as you find them; group
+them in the final comment.
+
+#### 1. Correctness
+- Does the code do what the MR/PR description says it should?
+- Are there off-by-one errors, null/None dereferences, or unhandled edge cases?
+- Do any changed functions have callers not updated to match the new signature?
+- Are error return values and exceptions handled appropriately?
+
+#### 2. Security
+- Is any user-controlled input validated or sanitised before use?
+- Are secrets, tokens, or credentials ever hardcoded or logged?
+- Are SQL queries, shell commands, or template strings constructed safely
+  (no injection risk)?
+- Are file paths validated to prevent directory traversal?
+
+#### 3. Performance
+- Are there N+1 query patterns or loops that make repeated API/DB calls?
+- Are large data structures built in memory when streaming would suffice?
+- Are expensive operations inside tight loops where they could be hoisted?
+
+#### 4. Code quality
+- Are functions and variables named clearly and consistently with the
+  existing codebase?
+- Is duplicated logic introduced that could be extracted?
+- Is any commented-out code or debug print left in?
+- Is the change self-contained — does it avoid unrelated refactors mixed
+  into the diff?
+
+#### 5. Tests
+- Does the diff include tests for the new or changed behaviour?
+- Do the tests cover the happy path and at least one error/edge case?
+- Are existing tests broken by the change (look for deleted assertions or
+  changed expectations)?
+
+#### 6. Breaking changes
+- Does the change alter a public API, config key, or env-var contract?
+- Are database migrations included if the schema changed?
+- Is backwards compatibility preserved, or is a migration/deprecation path
+  documented?
+
+#### 7. Documentation
+- Are new public functions/classes documented (docstring, JSDoc, etc.)?
+- Is the README or inline docs updated if the change affects user-visible
+  behaviour?
+- Does the MR/PR description clearly explain *why* the change is needed,
+  not just *what* it does?
+
+### Step 4 — Assign a verdict and draft the comment
+
+**Verdict criteria:**
+
+| Verdict | Meaning |
+|---|---|
+| **Approved** | No blocking issues; minor comments are advisory only. |
+| **Needs Changes** | One or more blocking issues must be resolved before merge. |
+| **Commented** | Observations shared but no explicit approval or block requested. |
+
+Use **Needs Changes** for: security issues, correctness bugs, missing tests
+for critical paths, breaking changes without a migration path.
+Use **Approved** when you would be comfortable merging as-is.
+Use **Commented** for informational feedback or when the review is
+intentionally partial.
+
+**Output format** — structure the comment exactly as follows:
+
+```
+## Code Review -- [MR/PR title or number]
+
+**Verdict:** [Approved | Needs Changes | Commented]
+
+### Summary
+[2-4 sentence plain-language summary of the change and your overall impression.]
+
+### Blocking issues
+[List each blocking issue with file + line reference where possible. Omit section if none.]
+
+### Suggestions
+[Non-blocking improvements -- code quality, naming, test coverage gaps. Omit section if none.]
+
+### Positive notes
+[Mention what was done well -- helps the author understand what to keep doing.]
+```
+
+Keep the comment concise. Aim for actionable specifics over generic advice.
+If there are no items for a section, omit that section entirely.
+
+### Step 5 — Show the draft, ask for confirmation
+
+Display the full draft review to the user and ask:
+
+> "Shall I post this review?"
+
+Wait for explicit user confirmation. Do **not** post without it.
+
+### Step 6 — Post the review
+
+On confirmation, invoke `scripts/post_review.py`. The script lives next to
+this SKILL.md (in the runtime skill directory). Its usage is:
+
+```
+python3 scripts/post_review.py <config_json_path> <mr_number> <review_body> <verdict>
+```
+
+Use `{{install_dir}}/config.json` as `<config_json_path>` (this is the same
+path you loaded in Runtime setup; the script re-reads it to pick up
+`platform`, `project_ref`, `api_token`, `base_url`).
+
+Pass the review body as a single string (multi-line OK; the script handles
+it). The verdict is one of: `Approved`, `Needs Changes`, `Commented`.
+
+Capture the URL the script prints on success — you need it for Step 7.
+
+### Step 7 — Update the Last Review record
+
+Build this JSON object first:
+
+```json
+{
+  "mr": <number>,
+  "verdict": "<verdict>",
+  "notes": "<one-line summary>",
+  "link": "<URL from post_review output>",
+  "ts": "<ISO 8601 timestamp>"
+}
+```
+
+Then update using whichever method fits the current platform:
+
+**Cowork**: call `mcp__cowork__list_artifacts` to find the artifact named
+`last-review`, then call `mcp__cowork__update_artifact` with its ID. In the
+updated HTML, replace the content between `/* DATA_START */` and
+`/* DATA_END */` markers with:
+
+```javascript
+var LAST_REVIEW = <JSON object>;
+```
+
+**Codex / Claude Code / Cursor / any platform with file write access**:
+the Last Review record lives at `{{install_dir}}/last-review.md` (Codex,
+seeded at install time by the Codex adapter Step C5) or as an installed
+`artifact.html` / `artifact.md` next to this SKILL.md (other platforms).
+Update both forms when present: rewrite the table in the markdown file with
+the new values, and if `artifact.html` is present, also replace the content
+between the `/* DATA_START */` and `/* DATA_END */` markers with the
+`var LAST_REVIEW = ...;` assignment.
+
+**No file access / CLI-only**: show the updated last-review table directly
+in chat so the user has a record of the review.
+
+### Step 8 — Confirm to the user
+
+> "Review posted — see it at <link>."
+
+If the Last Review update succeeded, mention that the record was refreshed.
+
+---
+
+## Files in this skill
+
+After install, the runtime AI sees these files alongside `SKILL.md`:
+
+- `scripts/post_review.py` — POSTs the review to GitLab/GitHub via REST API.
+  Invoked in Workflow Step 6.
+- `artifact.html` — Last Review card template. The Cowork install adapter
+  creates the live artifact in Cowork's registry from this; on Codex it
+  seeds `{{install_dir}}/last-review.md`. This file remains as the fallback
+  source for re-creating the artifact if it gets lost.
+- `artifact.md` — markdown fallback table for the Last Review record.
+
+## Notes
+
+- This skill is part of the `ai-code-review-flow` A3IP package.
+- The api_token is sensitive — never echo it, never include it in error
+  messages, never put it in the review body or the Last Review record.
+- If the user asks you to post without showing the draft first, decline and
+  show the draft anyway. Step 5 confirmation is non-negotiable.
+- If the api_token is invalid or the project_ref is wrong, `post_review.py`
+  will exit with a non-zero status and print an error to stderr. Surface that
+  to the user; suggest re-running the configure wizard if the token expired.
+
+=== END FILE ===
+
+=== FILE: intake.json ===
+{
+  "name": "ai-code-review-flow",
+  "version": "1.0.2",
+  "description": "Generic GitLab/GitHub code review workflow. The AI reads a merge/pull request diff, applies a structured review checklist, and posts the review comment via REST API. Platform and project are chosen at install time.",
+  "author": "Maksym Prydorozhko <maksym.prydorozhko@gmail.com>",
+  "license": "Apache-2.0",
+  "platforms": [
+    "cowork",
+    "claude-code",
+    "codex",
+    "cursor"
+  ],
+  "protocols": [
+    {
+      "name": "start-review",
+      "trigger": "start code review",
+      "aliases": [
+        "review this PR",
+        "review this MR",
+        "submit review",
+        "do code review"
+      ],
+      "description": "Reads the current MR/PR diff, applies the review checklist, posts the structured review comment to GitLab or GitHub, and updates the Last Review artifact.",
+      "steps": [
+        "Read config from {{config.install_dir}}/config.json (platform, project_ref, api_token, base_url).",
+        "Ask: 'What is the MR/PR number (or URL)?'",
+        "Fetch the diff: GitLab GET {{config.base_url}}/api/v4/projects/{{config.project_ref}}/merge_requests/<iid>/changes with header PRIVATE-TOKEN: {{config.api_token}}; or GitHub GET https://api.github.com/repos/{{config.project_ref}}/pulls/<n>/files with header Authorization: Bearer {{config.api_token}}.",
+        "Apply every checklist category from the code-review skill (correctness, security, performance, code quality, tests, breaking changes, documentation).",
+        "Draft the structured review comment using the output format defined in the code-review skill. Assign a verdict: Approved | Needs Changes | Commented.",
+        "Show the full draft to the user and ask: 'Shall I post this review?'",
+        "On confirmation, run script post_review with arguments: <config_json_path> <mr_number> <review_body> <verdict>. The script prints the URL of the posted review.",
+        "Update the Last Review artifact: build JSON object { mr, verdict, notes, link, ts } and update via mcp__cowork__update_artifact on Cowork (or file write to artifact.html on other platforms).",
+        "Confirm to the user: 'Review posted -- see it at <link>.'"
+      ]
+    }
+  ],
+  "skills": [
+    {
+      "name": "code-review",
+      "description": "Guides the AI through reading an MR/PR diff and producing a structured, actionable code review comment. Defines the 7-category checklist (correctness, security, performance, code quality, tests, breaking changes, documentation), verdict criteria (Approved/Needs Changes/Commented), and output format."
+    }
+  ],
+  "artifacts": [
+    {
+      "name": "last-review",
+      "description": "Card showing the most recent code review: MR/PR number, verdict (Approved / Needs Changes / Commented), reviewer notes summary, timestamp, and link.",
+      "type": "ui-view"
+    }
+  ],
+  "prompts": [],
+  "scripts": [
+    {
+      "key": "post_review",
+      "description": "POST a structured review comment to a GitLab MR or GitHub PR via REST API.",
+      "parameters": [
+        "config_json_path",
+        "mr_number",
+        "review_body",
+        "verdict"
+      ],
+      "platforms": [
+        "any"
+      ],
+      "trust_level": "network"
+    }
+  ],
+  "configuration": [
+    {
+      "key": "platform",
+      "label": "Code hosting platform",
+      "description": "The platform where your code is hosted.",
+      "type": "select",
+      "required": true,
+      "when": "before",
+      "options": [
+        {
+          "value": "gitlab",
+          "label": "GitLab (gitlab.com or self-hosted)",
+          "default": true
+        },
+        {
+          "value": "github",
+          "label": "GitHub (github.com)"
+        }
+      ]
+    },
+    {
+      "key": "project_ref",
+      "label": "Project reference",
+      "description": "GitLab: numeric project ID (Settings -> General). GitHub: owner/repo slug.",
+      "type": "string",
+      "required": true,
+      "when": "before",
+      "placeholder": "12345678  (GitLab)  or  acme/my-service  (GitHub)"
+    },
+    {
+      "key": "api_token",
+      "label": "API token",
+      "description": "Personal access token. GitLab: api scope. GitHub: repo scope.",
+      "type": "string",
+      "required": true,
+      "sensitive": true,
+      "storage": "env-var",
+      "when": "before"
+    },
+    {
+      "key": "base_url",
+      "label": "GitLab base URL",
+      "description": "Base URL for self-hosted GitLab. Leave blank to use gitlab.com.",
+      "type": "string",
+      "required": false,
+      "default": "https://gitlab.com",
+      "placeholder": "https://gitlab.mycompany.com",
+      "condition": "platform == gitlab",
+      "when": "before"
+    }
+  ],
+  "dependencies": {
+    "mcp": [],
+    "tools": [
+      {
+        "name": "python",
+        "version": ">=3.9",
+        "required": true,
+        "purpose": "Runs post_review.py to call the GitLab or GitHub API."
+      }
+    ]
+  },
+  "permissions": {
+    "network": [
+      {
+        "domain": "gitlab.com",
+        "reason": "Posts review comments to GitLab MRs via REST API."
+      },
+      {
+        "domain": "api.github.com",
+        "reason": "Posts review comments to GitHub PRs via REST API."
+      }
+    ],
+    "shell": [
+      {
+        "command": "python3",
+        "reason": "Runs post_review.py."
+      }
+    ]
+  },
+  "auth_flows": []
+}
+=== END FILE ===
+
+=== FILE: manifest.yaml ===
+# ─────────────────────────────────────────
+# A3IP Manifest
+# Generated by A3IP Creator on 2026-05-16
+# ─────────────────────────────────────────
+
+a3ip: "1.6"
+min_a3ip_spec: "1.9"
+latest_change: 2026-05-22
+name: "ai-code-review-flow"
+version: "1.3.1"
+description: >
+  Generic GitLab/GitHub code review workflow. The AI reads a merge/pull request diff, applies a structured review checklist, and posts the review comment via REST API. Platform and project are chosen at install time.
+author: "Maksym Prydorozhko <maksym.prydorozhko@gmail.com>"
+license: "Apache-2.0"
+
+# ─────────────────────────────────────────
+# Components
+# ─────────────────────────────────────────
+
+components:
+  skills:
+    - path: components/skills/code-review
+      description: "Guides the AI through reading an MR/PR diff and producing a structured, actionable code review comment. Defines the 7-category checklist (correctness, security, performance, code quality, tests, breaking changes, documentation), verdict criteria (Approved/Needs Changes/Commented), and output format."
+
+  artifacts:
+    - path: components/artifacts/last-review
+      description: "Card showing the most recent code review: MR/PR number, verdict (Approved / Needs Changes / Commented), reviewer notes summary, timestamp, and link."
+
+  protocols:
+    - path: components/protocols/start-review.md
+      description: "Reads the current MR/PR diff, applies the review checklist, posts the structured review comment to GitLab or GitHub, and updates the Last Review artifact."
+
+  prompts: []
+
+  scripts:
+    # Scripts follow a primary-plus-adapters pattern.
+    # 'any' platform = Python cross-platform default.
+    # 'windows' platform = PowerShell adapter in adapters/windows/scripts/.
+
+    - key: post_review
+      description: "POST a structured review comment to a GitLab MR or GitHub PR via REST API."
+      parameters: ["config_json_path", "mr_number", "review_body", "verdict"]
+      implementations:
+        - file: scripts/post_review.py
+          platform: any
+          trust_level: network
+
+# ─────────────────────────────────────────
+# External dependencies
+# ─────────────────────────────────────────
+
+dependencies:
+  mcp: []
+
+  tools:
+    - name: python
+      version: ">=3.9"
+      required: true
+      purpose: "Runs post_review.py to call the GitLab or GitHub API."
+
+# ─────────────────────────────────────────
+# Permissions (v1.2)
+# Declared for the AI installer to show the user before starting.
+# ─────────────────────────────────────────
+
+permissions:
+  network:
+    - domain: "gitlab.com"
+      reason: "Posts review comments to GitLab MRs via REST API."
+    - domain: "api.github.com"
+      reason: "Posts review comments to GitHub PRs via REST API."
+  shell:
+    - command: python3
+      reason: "Runs post_review.py."
+
+# ─────────────────────────────────────────
+# Configuration schema
+# Values collected during installation wizard.
+# Referenced as {{config.<key>}} in protocols, prompts, and scripts.
+# ─────────────────────────────────────────
+
+configuration:
+  - key: install_dir
+    label: "Installation directory"
+    description: "Directory where ai-code-review-flow's config.json, installed.json, and scripts will be stored. Default is the platform convention (Cowork / Claude Code: ~/.claude/packages/<name>/, Codex: ~/.codex/packages/<name>/). IMPORTANT for the install AI: expand the user-typed value to an absolute path before writing to config.json or installed.json. On Cowork (Windows), expand `~` to the Windows user home using the platform's native separator -- e.g. ~/.claude/packages/X/ becomes the absolute path under C:/Users/USERNAME/.claude/packages/X/. On Linux/macOS, expand to /home/USERNAME/ or /Users/USERNAME/. The runtime AI reads this value via the Read tool which does NOT expand ~ -- storing a tilde here breaks the runtime config lookup."
+    type: string
+    required: true
+    default: "~/.claude/packages/ai-code-review-flow/"
+    placeholder: "~/.claude/packages/ai-code-review-flow/"
+    when: before
+
+  - key: platform
+    label: "Code hosting platform"
+    description: "The platform where your code is hosted."
+    type: select
+    required: true
+    when: before
+    options:
+      - value: gitlab
+        label: "GitLab (gitlab.com or self-hosted)"
+        default: true
+      - value: github
+        label: "GitHub (github.com)"
+
+  - key: project_ref
+    label: "Project reference"
+    description: "GitLab: numeric project ID (Settings -> General). GitHub: owner/repo slug."
+    type: string
+    required: true
+    placeholder: "12345678  (GitLab)  or  acme/my-service  (GitHub)"
+    when: before
+
+  - key: api_token
+    label: "API token"
+    description: "Personal access token. GitLab: api scope. GitHub: repo scope."
+    type: string
+    required: true
+    sensitive: true          # installer must not log or display this value
+    storage: env-var
+    when: before
+
+  - key: base_url
+    label: "GitLab base URL"
+    description: "Base URL for self-hosted GitLab. Leave blank to use gitlab.com."
+    type: string
+    required: false
+    default: "https://gitlab.com"
+    placeholder: "https://gitlab.mycompany.com"
+    when: before
+    condition: "platform == gitlab"
+
+
+# ─────────────────────────────────────────
+# Platform compatibility
+# ─────────────────────────────────────────
+
+platforms:
+  tested:
+    - cowork
+    - claude-code
+    - codex
+    - cursor
+
+=== END FILE ===
+
+=== FILE: scripts/post_review.py ===
+#!/usr/bin/env python3
+"""
+ai-code-review-flow -- post_review.py
+POST a structured review comment to a GitLab MR or GitHub PR via REST API.
+
+For GitLab: posts a MR note (comment) with the verdict prepended.
+For GitHub:  posts a PR review with APPROVE / REQUEST_CHANGES / COMMENT event.
+
+Usage:
+    python3 post_review.py <config_json_path> <mr_number> <review_body> <verdict>
+
+Arguments:
+    config_json_path  Path to the config JSON file written by the install wizard
+    mr_number         GitLab MR IID or GitHub PR number (integer)
+    review_body       The full review comment text (Markdown)
+    verdict           One of: Approved | Needs Changes | Commented
+
+Exit codes:
+    0  success -- prints the URL of the posted review
+    1  error   -- prints a descriptive message to stderr
+"""
+
+import json
+import sys
+import urllib.error
+import urllib.request
+from pathlib import Path
+
+
+def api_post(url, payload, headers):
+    """POST JSON payload and return parsed response. Raises RuntimeError on non-2xx."""
+    data = json.dumps(payload).encode("utf-8")
+    req = urllib.request.Request(url, data=data, headers=headers, method="POST")
+    try:
+        with urllib.request.urlopen(req) as resp:
+            return json.loads(resp.read().decode("utf-8"))
+    except urllib.error.HTTPError as e:
+        body = e.read().decode("utf-8", errors="replace")
+        raise RuntimeError(f"HTTP {e.code} from {url}\n{body}") from None
+
+
+def post_gitlab(config, mr_number, review_body, verdict):
+    """Post a review note to a GitLab MR. Returns the note URL."""
+    base_url = config.get("base_url", "https://gitlab.com").rstrip("/")
+    project_ref = config["project_ref"]
+    token = config["api_token"]
+
+    body = f"**Verdict:** {verdict}\n\n{review_body}"
+
+    url = f"{base_url}/api/v4/projects/{project_ref}/merge_requests/{mr_number}/notes"
+    headers = {
+        "Content-Type": "application/json",
+        "PRIVATE-TOKEN": token,
+    }
+    resp = api_post(url, {"body": body}, headers)
+    note_id = resp["id"]
+    mr_url = (
+        f"{base_url}/projects/{project_ref}/merge_requests/{mr_number}"
+        f"#note_{note_id}"
+    )
+    return mr_url
+
+
+def post_github(config, pr_number, review_body, verdict):
+    """Post a PR review to GitHub. Returns the review HTML URL."""
+    project_ref = config["project_ref"]
+    token = config["api_token"]
+
+    event_map = {
+        "approved":       "APPROVE",
+        "needs changes":  "REQUEST_CHANGES",
+        "commented":      "COMMENT",
+    }
+    event = event_map.get(verdict.lower(), "COMMENT")
+
+    url = f"https://api.github.com/repos/{project_ref}/pulls/{pr_number}/reviews"
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {token}",
+        "Accept": "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+    }
+    resp = api_post(url, {"body": review_body, "event": event}, headers)
+    return resp.get("html_url", f"https://github.com/{project_ref}/pull/{pr_number}")
+
+
+def main():
+    if len(sys.argv) != 5:
+        print(
+            "Usage: python3 post_review.py"
+            " <config_json_path> <mr_number> <review_body> <verdict>",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    config_path = Path(sys.argv[1])
+    mr_number_raw = sys.argv[2]
+    review_body = sys.argv[3]
+    verdict = sys.argv[4]
+
+    if not config_path.exists():
+        print(f"Error: config file not found: {config_path}", file=sys.stderr)
+        sys.exit(1)
+
+    try:
+        with open(config_path, encoding="utf-8") as f:
+            config = json.load(f)
+    except json.JSONDecodeError as e:
+        print(f"Error: invalid JSON in config file: {e}", file=sys.stderr)
+        sys.exit(1)
+
+    try:
+        mr_number = int(mr_number_raw)
+    except ValueError:
+        print(
+            f"Error: mr_number must be an integer, got: {mr_number_raw!r}",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    platform = config.get("platform", "gitlab").lower()
+
+    try:
+        if platform == "gitlab":
+            link = post_gitlab(config, mr_number, review_body, verdict)
+        elif platform == "github":
+            link = post_github(config, mr_number, review_body, verdict)
+        else:
+            print(
+                f"Error: unsupported platform: {platform!r}"
+                " (expected 'gitlab' or 'github')",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+    except RuntimeError as e:
+        print(f"Error posting review: {e}", file=sys.stderr)
+        sys.exit(1)
+    except KeyError as e:
+        print(f"Error: missing config key: {e}", file=sys.stderr)
+        sys.exit(1)
+
+    print(f"Review posted: {link}")
+
+
+if __name__ == "__main__":
+    main()
+
+=== END FILE ===
