@@ -1,0 +1,87 @@
+# ─────────────────────────────────────────
+# A3IP Package Registry
+#
+# Machine-readable index of published A3IP packages. Installers and
+# discovery tools consume this file to find packages by name without
+# scraping GitHub directory listings.
+#
+# Schema version 1.0:
+#   registry_version  -- this schema's version, for future evolution
+#   updated           -- ISO date of last edit
+#   packages          -- list of package entries; each entry has:
+#     name            -- canonical kebab-case identifier (matches the
+#                        directory under this repo's root and the
+#                        manifest.yaml name field)
+#     description     -- one-paragraph human-readable summary
+#     author          -- "Name <email>" form
+#     license         -- SPDX identifier
+#     repository      -- canonical source-of-truth git URL (may equal
+#                        this repo for packages that don't have a
+#                        separate source repo)
+#     latest_version  -- semver string of the most recent release
+#     min_a3ip_spec   -- minimum A3IP spec version this package targets
+#     platforms       -- list of platforms the package has been tested on
+#     bundle_url      -- canonical raw URL for the latest .a3ip.bundle
+#     versions        -- list of every published version of this package,
+#                        oldest first; each entry has version, bundle_path,
+#                        a3ip_spec, released
+#
+# Adding a new package: append a new entry to `packages:`. When cutting
+# a new version of an existing package: append to its `versions:` list,
+# bump `latest_version`, update `min_a3ip_spec` if changed, update
+# `bundle_url` to point at the new version's bundle, and bump the
+# top-level `updated` date.
+# ─────────────────────────────────────────
+
+registry_version: "1.0"
+updated: "2026-06-10"
+
+packages:
+  - name: a3ip-creator
+    description: >
+      Reference A3IP authoring tool. Guides an AI through authoring a new
+      A3IP package from scratch via a structured intake conversation, or
+      reverse-engineers an existing workflow via Phase 0.7 Discovery mode.
+      Drives the a3ip CLI through scaffold, validate, and bundle to produce
+      a distributable .a3ip.bundle. Platform-agnostic by design.
+    author: "Maksym Prydorozhko <maksym.prydorozhko@gmail.com>"
+    license: "Apache-2.0"
+    repository: "https://github.com/a3ip-standard/creator"
+    latest_version: "3.0.0"
+    min_a3ip_spec: "1.10"
+    platforms:
+      - cowork
+      - codex
+      - claude-code
+      - cursor
+    bundle_url: "https://github.com/a3ip-standard/packages/raw/main/a3ip-creator/a3ip-creator-v3.0.0.a3ip.bundle"
+    versions:
+      - version: "3.0.0"
+        bundle_path: "a3ip-creator/a3ip-creator-v3.0.0.a3ip.bundle"
+        a3ip_spec: "1.10"
+        released: "2026-06-06"
+
+  - name: ai-code-review-flow
+    description: >
+      Generic GitLab/GitHub code review workflow. The AI reads a merge/pull
+      request diff, applies a structured 7-category review checklist
+      (correctness, security, performance, code quality, tests, breaking
+      changes, documentation), and posts the review comment via REST API.
+      Platform (GitLab/GitHub) and project reference are chosen at install
+      time.
+    author: "Maksym Prydorozhko <maksym.prydorozhko@gmail.com>"
+    license: "Apache-2.0"
+    repository: "https://github.com/a3ip-standard/packages"
+    latest_version: "1.4.1"
+    min_a3ip_spec: "1.10"
+    platforms:
+      - cowork
+      - codex
+      - claude-code
+      - cursor
+    bundle_url: "https://github.com/a3ip-standard/packages/raw/main/ai-code-review-flow/ai-code-review-flow-v1.4.1.a3ip.bundle"
+    versions:
+      - version: "1.4.1"
+        bundle_path: "ai-code-review-flow/ai-code-review-flow-v1.4.1.a3ip.bundle"
+        a3ip_spec: "1.10"
+        released: "2026-06-06"
