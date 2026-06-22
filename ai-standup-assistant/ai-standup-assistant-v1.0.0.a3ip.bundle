@@ -1,0 +1,3036 @@
+---
+a3ip-bundle: "1.1"
+package: ai-standup-assistant
+version: "1.0.0"
+generated: 2026-06-22T14:52:49Z
+files: 18
+spec_url: https://raw.githubusercontent.com/a3ip-standard/spec/main/docs/A3IP-SPEC-v1.10.md
+---
+
+# ================================================================
+# A3IP BUNDLE -- INSTALL KNOWLEDGE INSIDE
+# ================================================================
+#
+# This file is an A3IP installer bundle. Two pieces of installation
+# knowledge live inside it:
+#
+#   * INSTALL.md -- the install procedure OUTLINE. Defines the numbered
+#     Steps (typically 1 through ~11) and marks which Tier each step is.
+#     Tier 2 steps state OUTCOMES the AI must reach; Tier 1 steps are
+#     mechanical. Locate "=== FILE: INSTALL.md ===" in this bundle.
+#
+#   * adapters/runtime/<platform>/install-skill.md -- platform-specific
+#     KNOWLEDGE for satisfying the Tier 2 outcomes on your runtime
+#     (Cowork / Codex / Claude Code / Cursor / other). Describes
+#     conventions, not commandments. Locate "=== FILE: adapters/runtime/
+#     <your-platform>/install-skill.md ===".
+#
+# Before doing any install work, READ both artifacts. They are the
+# authoritative source of install knowledge for this package on your
+# platform. You are NOT expected to execute them as verbatim scripts --
+# you are expected to reason about them and apply your judgment to the
+# install in front of you.
+#
+# The failure mode to avoid: starting the install without consulting
+# these artifacts. The "=== FILE: ===" markers describe what's in
+# the bundle, not where each file goes at runtime. Improvising the
+# install layout from raw file structure -- without first reading
+# INSTALL.md's Steps and the adapter's conventions -- breaks the
+# install contract.
+#
+# Note on tooling: the `a3ip` CLI builds bundles; it does NOT install
+# them. Install is performed by the installing AI consulting INSTALL.md
+# plus the runtime adapter, then applying that knowledge to the
+# specific install in front of it.
+#
+# IF YOU ARE NOT FAMILIAR WITH A3IP: fetch the spec from:
+#   https://raw.githubusercontent.com/a3ip-standard/spec/main/docs/A3IP-SPEC-v1.10.md
+# Read it, then return here and follow INSTALL.md to install this package.
+#
+# If you cannot locate INSTALL.md or the runtime adapter for your
+# platform inside this bundle, stop and report. The bundle may be
+# malformed, or your platform may not be supported by this package.
+#
+# A3IP spec: https://raw.githubusercontent.com/a3ip-standard/spec/main/docs/A3IP-SPEC-v1.10.md
+# ================================================================
+
+=== FILE: adapters/os/posix/file-ops.md ===
+# POSIX (macOS / Linux) file operations -- OS-level conventions
+
+This adapter governs filesystem operations on a POSIX host. It contains
+ONLY OS-axis facts. Runtime-axis concerns -- which file tool, which
+sandboxing model -- live in `adapters/runtime/<runtime>/install-skill.md`,
+NOT here.
+
+## User home
+
+On POSIX systems, the user home is `/home/<user>/` on Linux and
+`/Users/<user>/` on macOS. The environment variable is `$HOME`.
+
+## Path separator
+
+Forward slashes throughout.
+
+## Persistent locations
+
+Persistent install directories on POSIX usually live under
+`~/.<runtime>/packages/<name>/`. The exact subdirectory under the home is
+runtime-specific -- see the runtime adapter for the target platform.
+
+## Path expansion behavior
+
+Most POSIX file-reading APIs handle `~` natively (shell expansion, Python's
+`os.path.expanduser`, etc.). Even so, the install adapter SHOULD resolve
+`~` to an absolute path before persisting any value -- different tools at
+runtime may treat `~` differently, and storing the expanded value makes the
+file portable to runtimes that do not expand.
+
+Strip trailing `/` from any user-provided directory path before storing it.
+
+=== END FILE ===
+
+=== FILE: adapters/os/windows/file-ops.md ===
+# Windows file operations -- OS-level conventions
+
+This adapter governs filesystem operations on a Windows host. It contains
+ONLY OS-axis facts (path conventions, home-variable, expansion behavior).
+Runtime-axis concerns -- which specific file tool to use for `~`-prefixed
+paths, how a particular AI runtime sandboxes file access, what to do when
+the runtime's bash sandbox conflicts with Windows paths -- live in
+`adapters/runtime/<runtime>/install-skill.md`, NOT here.
+
+## User home
+
+On Windows, the user home directory is typically `C:/Users/<user>/`.
+The environment variable is `%USERPROFILE%`. OneDrive-redirected home
+folders are normal -- the resolved path may be under
+`C:/Users/<user>/OneDrive/` rather than `C:/Users/<user>/`. Use whatever
+resolved path the OS returns at install time.
+
+## Path separator
+
+In JSON files and most modern APIs, forward slashes are accepted.
+Native Windows tooling (legacy APIs, batch scripts) prefers backslashes.
+Strip trailing `/` and `\` from any user-provided directory path before
+storing it -- the spec's path-separator normalization rule applies on
+every host OS.
+
+## Persistent locations
+
+Persistent install directories on Windows usually live under
+`%USERPROFILE%/.<runtime>/packages/<name>/`. The exact subdirectory under
+the user home is runtime-specific -- see the runtime adapter for the
+target platform.
+
+## Path expansion behavior
+
+A bare `~` is NOT expanded by all file-reading APIs. Some tools auto-expand
+it to `%USERPROFILE%`; others treat it as a literal directory named `~`.
+The install adapter MUST resolve `~` to its absolute Windows path before
+persisting any value to `config.json` or `installed.json`. Storing a
+literal `~` breaks the runtime config lookup on any tool that does not
+expand it.
+
+Which specific tool/method to use for this expansion is a runtime concern
+-- consult `adapters/runtime/<runtime>/install-skill.md` for that
+platform's recommended approach.
+
+=== END FILE ===
+
+=== FILE: adapters/runtime/claude-code/install-skill.md ===
+# Claude Code runtime adapter — ai-standup-assistant
+
+> **This file is a Creator template.** It was copied from
+> `creator-repo/components/runtime-adapter-templates/claude-code/install-skill.md`
+> into `ai-standup-assistant/adapters/runtime/claude-code/install-skill.md`
+> during scaffold. Generic placeholders use `ai-standup-assistant` for the package
+> name and italicised angle-bracket placeholders (e.g.
+> *`<your-script>`*) for per-package component identifiers. Adapt the
+> worked examples to this package's actual components and remove this
+> banner before shipping a release.
+
+This adapter is platform-knowledge for installing `ai-standup-assistant` on
+**Claude Code** (Anthropic's CLI developer agent). The installing AI
+reads this as context, then applies it to satisfy the Tier 2 outcomes
+in INSTALL.md — specifically the "make skills discoverable" step, the
+"make artifacts available" step (if this package ships artifacts), and
+the "make protocols invocable" step. The rest of INSTALL.md still
+applies — install detection, configure wizard, resolve install_dir,
+write config.json, write installed.json, and the Upgrading flow — all
+governed by INSTALL.md and the A3IP spec, not by this adapter.
+
+Per A3IP spec v1.10 'Writing Adapter Documents', adapter content is
+platform knowledge, not installation script. The code blocks below are
+illustrative worked examples — adapt them to actual paths and user
+choices rather than executing them verbatim.
+
+## How Claude Code discovers skills
+
+Claude Code **auto-discovers skills from `~/.claude/skills/`** on each
+session start. Unlike Codex, no separate registration step is needed
+— dropping a directory with a SKILL.md file into the skills folder is
+sufficient for the runtime to surface it.
+
+This makes the Claude Code install flow shorter than Codex's:
+
+- **Skill files live at `~/.claude/skills/ai-standup-assistant/`** — one directory
+  per skill. The directory must contain `SKILL.md` at its root (Claude
+  Code looks for SKILL.md there, not under `components/`).
+- **No AGENTS.md, no slash-command registration, no UI step.** The
+  skill becomes available the next time Claude Code reads its skill
+  index — typically on next session start, though `claude --refresh`
+  or equivalent commands may force a re-scan in-session if the runtime
+  supports it.
+- **Triggers come from the SKILL.md frontmatter.** The `description:`
+  field's trigger-phrase content is what Claude Code matches user
+  utterances against. The package's protocol triggers transitively
+  satisfy the "make protocols invocable" outcome once the skill is
+  in place.
+
+There is no UI registry, no marker file, no "Save skill" button. File
+presence is the registration.
+
+## Other Claude Code conventions
+
+**Per-install state** lives at `{{config.install_dir}}` (typically
+`~/.claude/packages/ai-standup-assistant/`). This is where `config.json`,
+`installed.json`, and any package-managed runtime records live. These
+paths are governed by INSTALL.md and the A3IP spec, not by this
+adapter.
+
+**No HTML artifact mechanism.** Claude Code has no equivalent of
+Cowork's `mcp__cowork__create_artifact`. Artifacts degrade to markdown
+files the runtime updates in-place at
+`{{config.install_dir}}/<artifact-name>.md`. The SKILL.md still
+treats each as a single named record — same purpose, different
+medium. Seed each from
+`components/artifacts/<artifact-name>/artifact.md` at install time.
+
+**No "Save skill" UI.** Skills install as plain files; there's no
+restart-required UI flow. The next session reads files fresh.
+
+**`install_method: "generic-copy"`** in `installed.json` per A3IP
+spec v1.10 Platform Conventions, distinguishing the Claude Code flow
+from Cowork's `"cowork-skill"` UI flow. (Claude Code shares the
+generic-copy method with Codex; the difference between them is the
+registration mechanism — Claude Code auto-discovers, Codex needs the
+AGENTS.md stanza.)
+
+**Host OS default is POSIX.** Claude Code is typically deployed on
+macOS or Linux developer machines. Windows is supported (via WSL or
+native), but path operations and shell semantics default to POSIX
+conventions in this adapter. On a Windows host, follow
+`adapters/os/windows/file-ops.md` for OS-specific deviations.
+
+**`~` expansion is well-defined.** Claude Code runs in the user's
+native shell environment; `~` expands to `$HOME` (POSIX) or
+`%USERPROFILE%` (Windows) without ambiguity. (Contrast with Cowork's
+bash sandbox, where `~` resolves to an ephemeral Linux home.)
+
+## What gets installed where
+
+| Artifact | Claude Code location | Mechanism |
+|---|---|---|
+| Skill payload (SKILL.md + scripts/) | `~/.claude/skills/ai-standup-assistant/` | File copy; auto-discovered on next session |
+| Per-install state | `{{config.install_dir}}` | config.json, installed.json, artifact markdown record(s) |
+| Each artifact record (if any) | `{{config.install_dir}}/<artifact-name>.md` | Markdown the runtime rewrites after each trigger |
+
+## Worked example: the install flow on Claude Code
+
+The steps below are illustrative — they describe one way to achieve
+the Tier 2 outcomes on Claude Code. The install AI may adapt for
+variations (the user's install_dir, a Windows host where POSIX
+shell idioms need PowerShell translation, an existing skill from a
+prior install).
+
+### Step C1: Detect prior install
+
+Look at `{{config.install_dir}}/installed.json`. Use the file tool
+that expands `~` correctly on this host (`os.path.expanduser('~')` in
+Python or shell-native `~` substitution).
+
+- **Found:** read the `version` field. Go to **Upgrading an existing
+  Claude Code install** at the end of this document.
+- **Not found:** continue with fresh install.
+
+### Step C2: Extract bundle to a temp directory and validate
+
+Before touching `~/.claude/skills/`, unpack the `.a3ip.bundle` into a
+temp working directory and run `a3ip validate` against the unpacked
+tree. This catches bundle-parsing issues before they affect the live
+install.
+
+```bash
+BUNDLE="<path to ai-standup-assistant-vX.Y.Z.a3ip.bundle>"
+WORK="$(mktemp -d)/ai-standup-assistant-vX.Y.Z-extracted"
+mkdir -p "$WORK"
+# Parse the bundle (line-delimited === FILE: <path> === blocks) and
+# write each file under $WORK using your scripting tool of choice.
+
+a3ip validate "$WORK"
+```
+
+If validation fails, do NOT proceed to overwriting the live skill
+directory. Fix or escalate.
+
+### Step C3: Back up existing skill (if upgrading)
+
+If `~/.claude/skills/ai-standup-assistant/` exists, back it up before overwriting.
+A timestamped folder under `~/.claude/backups/` is the convention;
+tell the user the backup path so they can roll back.
+
+```bash
+SKILL="$HOME/.claude/skills/ai-standup-assistant"
+BACKUP_ROOT="$HOME/.claude/backups"
+if [ -d "$SKILL" ]; then
+    mkdir -p "$BACKUP_ROOT"
+    cp -r "$SKILL" "$BACKUP_ROOT/ai-standup-assistant-$(date +%Y%m%dT%H%M%S)"
+fi
+```
+
+### Step C4: Install the skill payload
+
+Replace the live skill directory with the validated extraction. The
+runtime payload is everything SKILL.md needs at runtime: SKILL.md
+itself (lifted to the skill root), the scripts it invokes, and any
+artifact templates it reads.
+
+Lift `components/skills/<your-skill-name>/SKILL.md` to `$SKILL/SKILL.md`
+(the skill root) — Claude Code looks there, not in `components/`.
+Then substitute the absolute `install_dir` into all markdown files
+in the installed skill (SKILL.md plus any protocol files that
+reference `{{install_dir}}`). Rationale: `install_dir` is a non-secret
+deterministic path — substituting it at install time is the only way
+the runtime AI knows where to read config.json. Other config keys
+(tokens, secrets, identifiers) are NOT substituted; they stay in
+config.json so the skill remains portable across config changes.
+
+**Path-separator normalization (required).** The `install_dir` value
+sourced from `CONFIGURE.md` or a prior `installed.json` may end with
+a trailing path separator. SKILL.md templates reference files as
+`{{install_dir}}/config.json` with a leading `/`. A naive substitution
+of a trailing-separator value into a leading-slash template produces
+a path with a doubled separator. On POSIX the kernel collapses `//`,
+but on Windows hosts (Claude Code via WSL or native) mixed
+separators may still cause issues. Strip trailing `/` and `\` from
+the install_dir value before substituting.
+
+Illustrative (POSIX shell; Windows hosts adapt to PowerShell per
+`adapters/os/windows/file-ops.md`):
+
+```bash
+SKILL="$HOME/.claude/skills/ai-standup-assistant"
+INSTALL_DIR="<absolute install_dir from CONFIGURE.md>"
+INSTALL_DIR="${INSTALL_DIR%/}"      # strip trailing /
+INSTALL_DIR="${INSTALL_DIR%\\}"     # strip trailing \
+
+rm -rf "$SKILL"
+mkdir -p "$SKILL"
+cp -r "$WORK"/* "$SKILL"/
+cp "$WORK/components/skills/<your-skill-name>/SKILL.md" "$SKILL/SKILL.md"
+
+# Substitute {{install_dir}} in every .md file in the installed skill
+find "$SKILL" -name '*.md' -type f | while read -r f; do
+    if grep -q '{{install_dir}}' "$f"; then
+        sed -i.bak "s|{{install_dir}}|$INSTALL_DIR|g" "$f"
+        rm "$f.bak"
+    fi
+done
+```
+
+(macOS uses `sed -i ''` instead of `sed -i.bak` + `rm`; adapt as
+needed. Or use Python for portable substitution.)
+
+### Step C5: Initialize artifact record(s) — if any
+
+For each artifact declared in the package manifest, create a markdown
+file the runtime will keep up to date. This is the Claude Code-side
+stand-in for Cowork's artifact card: same purpose (one record,
+updated on trigger), different medium.
+
+```bash
+RECORD="$INSTALL_DIR/<artifact-name>.md"
+if [ ! -f "$RECORD" ]; then
+    cp "$WORK/components/artifacts/<artifact-name>/artifact.md" "$RECORD"
+fi
+```
+
+If the record already exists (from a previous install), leave it in
+place — it carries the user's most recent state. The SKILL.md
+updates the file in place on each trigger.
+
+If `ai-standup-assistant` ships no artifacts, skip this step entirely.
+
+### Step C6: Write installed.json
+
+Per A3IP spec v1.10 Platform Conventions, Claude Code installs use
+`install_method: "generic-copy"`:
+
+```json
+{
+  "package": "ai-standup-assistant",
+  "version": "<NEW>",
+  "installed_at": "<ISO-8601 timestamp>",
+  "upgraded_from": "<previous version, or omit if fresh install>",
+  "platform": "claude-code",
+  "a3ip_spec": "1.10",
+  "config_dir": "{{config.install_dir}}",
+  "install_method": "generic-copy",
+  "source_bundle": "<absolute path to the .a3ip.bundle used>",
+  "backup_dir": "<absolute path to backup from C3, or omit if fresh>"
+}
+```
+
+Per spec: `upgraded_from`, `source_bundle`, and `backup_dir` are
+optional; include them when applicable. Readers MUST tolerate their
+absence.
+
+### Step C7: Verify the install end-to-end
+
+Two confirmations:
+
+1. **Static:** `a3ip validate $SKILL` should report
+   `[OK] Validation passed`.
+2. **Runtime:** start a NEW Claude Code session (so the skill index is
+   freshly scanned) and say one of the package's trigger phrases. The
+   AI should recognise the trigger, read config from
+   `<install_dir>/config.json`, and behave per the SKILL.md. If
+   Claude Code does not recognise the trigger, check that the skill
+   directory exists at `~/.claude/skills/ai-standup-assistant/` and contains a
+   valid SKILL.md with the expected `description:` frontmatter.
+
+### Step C8: Clean up
+
+```bash
+rm -rf "$WORK"
+```
+
+## Upgrading an existing Claude Code install
+
+Triggered when Step C1 found `{{install_dir}}/installed.json`.
+
+1. Read the `version` field. Determine which CHANGELOG entries need
+   to apply (everything between installed version and the bundle's
+   version).
+2. Apply each version's `### Upgrade steps` in order. For most
+   packages on Claude Code this is "replace the skill files" —
+   Steps C2 through C7 above suffice for any minor/patch upgrade.
+   Artifact records are preserved through Step C5's idempotency.
+3. For major bumps or breaking changes (per CHANGELOG
+   `### Breaking changes`), follow the explicit instructions in
+   that version's changelog entry before re-running C2–C7. If config
+   keys changed, re-run the wizard for those keys and rewrite
+   `config.json` before reinstalling the skill payload.
+4. Update `installed.json` (Step C6) with the new version and
+   `upgraded_from` = previous version. Preserve `config_dir`,
+   `install_method`, optionally bump `a3ip_spec` and `backup_dir`.
+
+## Troubleshooting
+
+**`a3ip` command not on PATH after `pip install --user`:** find the
+binary at `~/.local/bin/a3ip` (POSIX) or
+`$env:APPDATA\Python\Python<XY>\Scripts\a3ip.exe` (Windows) and
+invoke explicitly, or add that directory to PATH. (Note: most
+packages do not require `a3ip` at runtime — only the install AI
+uses it for `a3ip validate`.)
+
+**Skill files installed but Claude Code doesn't recognise the
+trigger:** confirm the SKILL.md is at the **root** of
+`~/.claude/skills/ai-standup-assistant/` (not under a `components/` subdirectory)
+and has the expected `description:` frontmatter. Then start a NEW
+session — Claude Code's skill index is read at startup and may not
+pick up a newly-added skill until the next session.
+
+**Script fails with "config file not found":** SKILL.md still
+contains a literal `{{install_dir}}` because Step C4's substitution
+was skipped. Re-run Step C4, ensuring the substitution variable is
+the absolute path the user chose during CONFIGURE.md.
+
+**Artifact record never updates:** the skill writes via the runtime's
+file tool. Confirm the path is correct and the user account has write
+permission to `{{config.install_dir}}`.
+
+**Unicode crash when running validate:** upgrade to a3ip CLI 1.3.1 or
+higher (`pip install --upgrade --user a3ip`). v1.3.1+ uses ASCII-safe
+console output by default.
+
+**OneDrive-redirected `$HOME` on Windows.** If `~` resolves through
+`%USERPROFILE%` to a OneDrive-redirected path, file operations work
+but may be slower on first access. The Windows file-ops adapter at
+`adapters/os/windows/file-ops.md` covers this case.
+
+=== END FILE ===
+
+=== FILE: adapters/runtime/claude-code/uninstall-skill.md ===
+# Claude Code runtime adapter (uninstall) — ai-standup-assistant
+
+> **This file is a Creator template.** It was copied from
+> `creator-repo/components/runtime-adapter-templates/claude-code/uninstall-skill.md`
+> into `ai-standup-assistant/adapters/runtime/claude-code/uninstall-skill.md`
+> during scaffold. Generic placeholders use `ai-standup-assistant` for the
+> package name and italicised angle-bracket placeholders for
+> per-package component identifiers. Adapt the worked examples to
+> this package's actual components and remove this banner before
+> shipping a release.
+
+This adapter is platform-knowledge for **uninstalling** `ai-standup-assistant`
+on **Claude Code**. The installing AI reads this as context, then
+applies it to satisfy the Tier 2 outcomes in INSTALL.md's
+`## Uninstalling` section — specifically Step UN1 (locate the
+install), Step UN3 (make the skill un-discoverable), Step UN4
+(remove artifacts, if any), and Step UN5 (make protocols no longer
+invocable). The mechanical steps (UN2, UN6, UN7, UN8) are governed
+by INSTALL.md and the A3IP spec, not by this adapter.
+
+Per A3IP spec v1.10 'Writing Adapter Documents', adapter content is
+platform knowledge, not installation script. The code blocks below
+are illustrative worked examples — adapt them to actual paths and
+user choices rather than executing them verbatim.
+
+This adapter is the symmetric counterpart of `install-skill.md` —
+every mechanism that the install side put in place, the uninstall
+side reverses.
+
+## How Claude Code stores installed packages (UN1 discovery)
+
+Claude Code itself does not maintain a global index of installed
+A3IP packages. Discovery is per-package and goes through the
+package's own `installed.json` at the configured `install_dir`.
+
+For `ai-standup-assistant` on Claude Code, the default install location is
+typically `~/.claude/packages/ai-standup-assistant/` — but the user may have
+customised it during install. The discovery procedure is:
+
+1. **Default-path check first.** Read
+   `~/.claude/packages/ai-standup-assistant/installed.json` via the file tool
+   that expands `~` correctly on this host. If the file exists,
+   parse its `config_dir` field — that is the authoritative install
+   location for THIS install.
+
+2. **Followed by the file's own `config_dir`.** Once you have the
+   file's `config_dir`, that is where every subsequent uninstall
+   step operates. Treat it as authoritative for the rest of the
+   flow.
+
+3. **If the default-path file is absent**, the user almost certainly
+   did not customise `install_dir`. Exit cleanly: tell the user
+   "ai-standup-assistant is not installed at the platform-default location;
+   if you customised install_dir on install, please provide the
+   path."
+
+Read `installed.json` for `version`, `platform`, `config_dir`, and
+`install_method`. The `install_method: "generic-copy"` value tells
+you this was a Claude Code-flow install (or another generic-copy
+platform). The `platform: "claude-code"` field confirms you're in
+the right adapter.
+
+## How Claude Code un-registers skills (UN3)
+
+Because Claude Code **auto-discovers skills from
+`~/.claude/skills/`**, un-discovery is the inverse: delete the skill
+directory. There is no AGENTS.md stanza to remove (Codex), no UI
+panel to click through (Cowork). One operation:
+
+1. **Remove the skill directory at `~/.claude/skills/ai-standup-assistant/`.**
+   This is `rm -rf` semantics on the skill directory. After this,
+   Claude Code's next session scan will not find the skill, and its
+   trigger phrases will no longer match user utterances.
+
+Illustrative (POSIX shell):
+
+```bash
+SKILL="$HOME/.claude/skills/ai-standup-assistant"
+if [ -d "$SKILL" ]; then
+    rm -rf "$SKILL"
+fi
+```
+
+On Windows hosts (Claude Code via WSL or native PowerShell), follow
+`adapters/os/windows/file-ops.md` for the equivalent OS-appropriate
+operation (`Remove-Item -LiteralPath $skill -Recurse -Force` in
+PowerShell).
+
+Skill removal takes effect on the next session start. If the user
+has Claude Code running, ask them to start a fresh session so the
+skill index is re-scanned without the removed entry. (The current
+session may still have the skill loaded; that's harmless — the
+files are gone, future sessions won't see them.)
+
+## How Claude Code removes artifacts (UN4)
+
+If `ai-standup-assistant` declared artifacts in its manifest, the install side
+seeded `{{config.install_dir}}/<artifact-name>.md` from the bundled
+`components/artifacts/<artifact-name>/artifact.md` template for
+each one. Uninstall removes these files.
+
+If the user chose to preserve at least one configuration key in
+Step UN2, an artifact MAY be preserved at the AI's discretion — it
+may carry non-derivable history. The default is to delete
+unconditionally.
+
+Illustrative (POSIX shell, one artifact named
+*`<your-artifact-name>`*):
+
+```bash
+RECORD="$INSTALL_DIR/<your-artifact-name>.md"
+if [ -f "$RECORD" ]; then
+    rm "$RECORD"
+fi
+```
+
+If `ai-standup-assistant` ships no artifacts, this step is a no-op.
+
+## How Claude Code de-registers protocols (UN5)
+
+Claude Code protocol triggers come from the SKILL.md `description:`
+frontmatter. Once Step UN3 removes the skill directory, the
+triggers are no longer discoverable — Claude Code's next session
+will not match user utterances to the removed package. So
+**UN5 is a no-op once UN3 completes**.
+
+If UN3 has not run yet and UN5 is reached anyway, the outcome
+cannot be satisfied — return to UN3.
+
+## Worked example: the uninstall flow on Claude Code
+
+The steps below describe one cohesive way to satisfy the Tier 2
+outcomes on Claude Code. The uninstall AI may adapt for variations
+(e.g., the skill was already removed manually; the user customised
+install_dir).
+
+### Step UCC1: Locate the install (UN1)
+
+Read `~/.claude/packages/ai-standup-assistant/installed.json` via the
+host-appropriate file tool. If present, capture `config_dir`,
+`version`, `platform`. If absent, exit cleanly.
+
+### Step UCC2: Show the Uninstall Plan (UN2 — mechanical, handled by INSTALL.md)
+
+Walk the config schema. Per the v1.10 `preserve_on_uninstall`
+annotations, ask one focused question per `ask` key, silently
+purge each `false` key, silently preserve each `true` key. Confirm.
+
+### Step UCC3: Remove skill directory (UN3)
+
+Delete the directory tree at `~/.claude/skills/ai-standup-assistant/`. If the
+directory does not exist (the user removed it manually, or a prior
+uninstall already cleaned it), treat as success — the outcome is
+satisfied.
+
+Ask the user to start a fresh Claude Code session so the skill
+index is re-scanned without the removed entry.
+
+### Step UCC4: Remove artifact records (UN4)
+
+For each artifact declared in the package, delete
+`{{config.install_dir}}/<artifact-name>.md` if present. Skip if
+the user chose to preserve config and the artifact carries history
+the user wanted to keep. If `ai-standup-assistant` ships no artifacts, skip.
+
+### Step UCC5: Protocols (UN5)
+
+No-op once UCC3 completes. Confirm to the user that the package's
+triggers no longer fire in fresh sessions.
+
+### Step UCC6: Trim config.json and remove install_dir contents (UN6 — mechanical)
+
+Read `config.json` from `config_dir`. Construct a new object with
+only the keys the user chose to preserve (plus any
+`preserve_on_uninstall: true` keys). Write it back, or delete the
+file if no keys survive.
+
+Delete every other file and subdirectory in `config_dir` EXCEPT
+`config.json` (if preserved) and `installed.json`. Artifact records
+were handled in UCC4.
+
+### Step UCC7: Remove installed.json (UN7 — mechanical)
+
+Delete `config_dir/installed.json`. If `config_dir` is now empty,
+remove the directory too.
+
+### Step UCC8: Confirm (UN8 — mechanical)
+
+Tell the user the uninstall is complete. Name:
+1. The version that was uninstalled.
+2. Which configuration keys were preserved and where.
+3. Which keys were purged.
+4. That the skill directory at `~/.claude/skills/ai-standup-assistant/` has
+   been removed — the package's triggers no longer fire in fresh
+   Claude Code sessions.
+5. Any leftover state: e.g., if any artifact records were
+   preserved, mention their locations.
+
+## Edge cases
+
+**The skill directory was already removed before uninstall ran.**
+UCC3 becomes a no-op. The AI tells the user "the skill directory is
+already absent; continuing with config and file cleanup."
+
+**`installed.json` is missing but the install_dir has other files.**
+This indicates a partial install. The AI MAY offer to clean up the
+leftover files or leave them in place at the user's choice.
+
+**The user changed the `install_dir` since install.** The
+`config_dir` stored in `installed.json` is the authoritative source.
+If the user moved the directory between install and uninstall, ask
+them where the package's files actually live and use that path
+instead.
+
+**Windows host (Claude Code via WSL or native).** All POSIX shell
+idioms above need PowerShell or WSL-bash translation. See
+`adapters/os/windows/file-ops.md` for the canonical tool-selection
+guidance.
+
+**OneDrive-redirected `$HOME` on Windows.** `~` resolves through
+`%USERPROFILE%`, which may point to `C:\Users\<user>\OneDrive\`
+rather than `C:\Users\<user>\`. The Windows file-ops adapter
+covers this — use the YES-row tool to expand `~` properly.
+
+=== END FILE ===
+
+=== FILE: adapters/runtime/codex/install-skill.md ===
+# Codex runtime adapter — ai-standup-assistant
+
+> **This file is a Creator template.** It was copied from
+> `creator-repo/components/runtime-adapter-templates/codex/install-skill.md`
+> into `ai-standup-assistant/adapters/runtime/codex/install-skill.md` during
+> scaffold. Generic placeholders use `ai-standup-assistant` for the package name and
+> italicised angle-bracket placeholders (e.g. *`<your-script>`*) for
+> per-package component identifiers. Adapt the worked examples to this
+> package's actual components and remove this banner before shipping a
+> release.
+
+This adapter is platform-knowledge for installing `ai-standup-assistant` on
+**Codex** (OpenAI's coding agent). The installing AI reads this as
+context, then applies it to satisfy the Tier 2 outcomes in INSTALL.md
+— specifically the "make skills discoverable" step, the "make artifacts
+available" step (if this package ships artifacts), and the "make
+protocols invocable" step. The rest of INSTALL.md still applies —
+install detection, configure wizard, resolve install_dir, write
+config.json, write installed.json, and the Upgrading flow — all
+governed by INSTALL.md and the A3IP spec, not by this adapter.
+
+Per A3IP spec v1.10 'Writing Adapter Documents', adapter content is
+platform knowledge, not installation script. The code blocks below are
+illustrative worked examples — adapt them to actual paths, AGENTS.md
+state, and user choices rather than executing them verbatim.
+
+## How Codex discovers skills (critical convention)
+
+This is the single most important thing to know about installing skills
+on Codex: **Codex does NOT auto-discover files in `~/.codex/skills/`**.
+Dropping files there is necessary but not sufficient. The host runtime
+needs to be told about the skill through Codex's persistent-instructions
+mechanism, which is **`~/.codex/AGENTS.md`**.
+
+`~/.codex/AGENTS.md` is the global AGENTS.md file Codex loads at every
+session start as a persistent system instruction. For Codex to
+recognise the package's trigger phrases and follow the SKILL.md
+protocol, that SKILL.md path must be referenced in AGENTS.md. Without
+an AGENTS.md stanza, the user can say a trigger phrase and Codex will
+improvise a generic response in the workspace instead of loading the
+installed skill — a known failure mode discovered during early A3IP
+testing.
+
+The conventions are:
+
+- **Skill files live at `~/.codex/skills/ai-standup-assistant/`** — one directory
+  per skill. The directory must contain `SKILL.md` at its root (Codex
+  looks for SKILL.md there, not under `components/`).
+- **AGENTS.md at `~/.codex/AGENTS.md`** is where the skill gets
+  registered. It is a plain markdown file; multiple skills can be
+  registered side by side. The file may already have unrelated content
+  from other installations or the user — preserve it.
+- **Registration convention:** an A3IP stanza wrapped in marker
+  comments so re-installs and uninstalls can replace or remove the
+  block cleanly. The marker shape is:
+
+      <!-- a3ip:ai-standup-assistant:start -->
+      ## a3ip skill: ai-standup-assistant
+      When the user says <trigger phrases>, read and follow
+      <absolute path to SKILL.md>. That file is authoritative.
+      <!-- a3ip:ai-standup-assistant:end -->
+
+  An installing AI on a fresh machine (no existing AGENTS.md) creates
+  the file. On a machine with existing AGENTS.md content, it appends
+  the marker block at the end. On re-install, it locates the existing
+  marker block by name and replaces its contents in place.
+
+## Other Codex conventions
+
+**Per-install state** lives at `{{config.install_dir}}` (typically
+`~/.codex/packages/ai-standup-assistant/`). This is where `config.json`,
+`installed.json`, and any package-managed runtime records live. These
+paths are governed by INSTALL.md and the A3IP spec, not by this
+adapter.
+
+**No HTML artifact mechanism.** Codex has no equivalent of Cowork's
+`mcp__cowork__create_artifact`. Artifacts degrade to markdown files the
+runtime updates in-place at `{{config.install_dir}}/<artifact-name>.md`.
+The SKILL.md still treats each as a single named record — same purpose,
+different medium. Seed each from
+`components/artifacts/<artifact-name>/artifact.md` at install time.
+
+**No "Save skill" UI.** Skills install as plain files; there's no UI
+button, no Personal Skills registry, no restart required for skill
+changes to take effect. The next Codex session reads files fresh — but
+only if AGENTS.md tells it to.
+
+**`install_method: "generic-copy"`** in `installed.json` per A3IP spec
+v1.10 Platform Conventions, distinguishing the Codex flow from
+Cowork's `"cowork-skill"` UI flow.
+
+**Direct PowerShell on Windows.** Codex on Windows talks to the native
+filesystem directly; `$env:USERPROFILE` is the Windows user home with
+no sandbox layer. `~`-expansion is unambiguous. (Contrast with
+Cowork's bash sandbox, where `~` resolves to an ephemeral Linux home.)
+
+## What gets installed where
+
+| Artifact | Codex location | Mechanism |
+|---|---|---|
+| Skill payload (SKILL.md + scripts/) | `~/.codex/skills/ai-standup-assistant/` | File copy |
+| Skill registration | `~/.codex/AGENTS.md` (stanza appended) | Marker-bounded block, points at the SKILL.md absolute path |
+| Per-install state | `{{config.install_dir}}` | config.json, installed.json, artifact markdown record(s) |
+| Each artifact record (if any) | `{{config.install_dir}}/<artifact-name>.md` | Markdown the runtime rewrites after each trigger |
+
+## Worked example: the install flow on Codex
+
+The steps below are illustrative — they describe one way to achieve the
+Tier 2 outcomes on Codex. The install AI may adapt for variations
+(e.g., the user's install_dir, an existing AGENTS.md with unrelated
+content, an older a3ip CLI requiring
+`$env:PYTHONIOENCODING = 'utf-8'`).
+
+### Step C1: Detect prior install
+
+Look at `{{config.install_dir}}/installed.json`. On Windows under Codex
+use a tool that expands `~` to the Windows user home
+(`$env:USERPROFILE` in PowerShell or `os.path.expanduser('~')` in
+Python). See `adapters/os/windows/file-ops.md` for canonical
+tool-selection guidance.
+
+- **Found:** read the `version` field. Go to **Upgrading an existing
+  Codex install** at the end of this document.
+- **Not found:** continue with fresh install.
+
+### Step C2: Extract bundle to a temp directory and validate
+
+Before touching `~/.codex/skills/`, unpack the `.a3ip.bundle` into a
+temp working directory and run `a3ip validate` against the unpacked
+tree. This catches bundle-parsing issues before they affect the live
+install.
+
+```
+$bundle = "<path to ai-standup-assistant-vX.Y.Z.a3ip.bundle>"
+$work   = "$env:TEMP\ai-standup-assistant-vX.Y.Z-extracted"
+Remove-Item -LiteralPath $work -Recurse -Force -ErrorAction SilentlyContinue
+New-Item -ItemType Directory -Path $work -Force
+```
+
+Parse the bundle (line-delimited `=== FILE: <path> ===` /
+`=== END FILE ===` blocks) and write each file under `$work`. Then:
+
+```
+a3ip validate $work
+```
+
+If validation fails, do NOT proceed to overwriting the live skill
+directory. Fix or escalate.
+
+### Step C3: Back up existing skill (if upgrading)
+
+If `~/.codex/skills/ai-standup-assistant/` exists, back it up before overwriting.
+A timestamped folder under `~/.codex/backups/` is the convention; tell
+the user the backup path so they can roll back.
+
+### Step C4: Install the skill payload
+
+Replace the live skill directory with the validated extraction. The
+runtime payload is everything SKILL.md needs at runtime: SKILL.md
+itself (lifted to the skill root), the scripts it invokes, and any
+artifact templates it reads.
+
+Lift `components/skills/<your-skill-name>/SKILL.md` to
+`<skill>/SKILL.md` (the skill root) — Codex looks there, not in
+`components/`. Then substitute the absolute `install_dir` into all
+markdown files in the installed skill (SKILL.md plus any protocol
+files that reference `{{install_dir}}`). Rationale: `install_dir` is a
+non-secret deterministic path — substituting it at install time is the
+only way the runtime AI knows where to read config.json. Other config
+keys (tokens, secrets, identifiers) are NOT substituted; they stay in
+config.json so the skill remains portable across config changes.
+
+**Path-separator normalization (required).** The `install_dir` value
+sourced from `CONFIGURE.md` or a prior `installed.json` may end with a
+trailing path separator (`\` or `/`). SKILL.md templates reference
+files as `{{install_dir}}/config.json` with a leading `/`. A naive
+substitution of a trailing-separator value into a leading-slash
+template produces a malformed mixed-slash path on Windows (e.g.
+`C:\Users\me\.codex\packages\ai-standup-assistant\/config.json`), which Codex's
+runtime file APIs reject. Strip trailing `/` and `\` from
+`$installDir` before substituting so the join is well-formed.
+
+Illustrative (adapt paths and install_dir literal):
+
+```
+$skill = "$env:USERPROFILE\.codex\skills\ai-standup-assistant"
+$installDir = "<absolute install_dir from CONFIGURE.md>"
+$installDir = $installDir.TrimEnd('/', '\')  # see normalization note above
+
+Remove-Item -LiteralPath $skill -Recurse -Force -ErrorAction SilentlyContinue
+New-Item -ItemType Directory -Path $skill -Force
+Copy-Item -Path (Join-Path $work '*') -Destination $skill -Recurse -Force
+Copy-Item -LiteralPath (Join-Path $work 'components\skills\<your-skill-name>\SKILL.md') `
+          -Destination (Join-Path $skill 'SKILL.md') -Force
+
+Get-ChildItem -LiteralPath $skill -Recurse -Filter '*.md' | ForEach-Object {
+    $text = Get-Content -LiteralPath $_.FullName -Raw
+    if ($text -match '\{\{install_dir\}\}') {
+        $text = $text -replace '\{\{install_dir\}\}', $installDir
+        Set-Content -LiteralPath $_.FullName -Value $text -Encoding UTF8
+    }
+}
+```
+
+PowerShell quirk to be aware of: `-LiteralPath` does NOT expand
+wildcards. Use `-Path` when copying with `*`, `-LiteralPath` only when
+you have an exact filename. Mixing these incorrectly produces a silent
+partial copy where only one file is moved.
+
+### Step C5: Register the skill in AGENTS.md (THIS IS THE CRITICAL STEP)
+
+Without this step, Step C4's files exist but are not discoverable.
+Codex will not recognise the package's trigger phrases.
+
+Append (or upsert) a marker-bounded stanza to `~/.codex/AGENTS.md`. If
+the file does not exist, create it. If it exists with unrelated
+content, preserve that content and append the stanza. If it already
+contains a `ai-standup-assistant` marker block from a prior install, replace its
+contents between the markers in place.
+
+Illustrative (adapt the absolute SKILL.md path and trigger phrases to
+match the package's actual protocols):
+
+```
+$agentsPath = "$env:USERPROFILE\.codex\AGENTS.md"
+$skillMd    = "$env:USERPROFILE\.codex\skills\ai-standup-assistant\SKILL.md"
+
+$stanza = @"
+<!-- a3ip:ai-standup-assistant:start -->
+## a3ip skill: ai-standup-assistant
+
+When the user says any of <quoted trigger phrases from the package's
+protocols, comma-separated>, read and follow $skillMd. That file is
+authoritative; do not improvise a generic response.
+
+Config for this skill lives at $installDir\config.json.
+<!-- a3ip:ai-standup-assistant:end -->
+"@
+
+# Read existing AGENTS.md (or empty string if missing)
+if (Test-Path -LiteralPath $agentsPath) {
+    $current = Get-Content -LiteralPath $agentsPath -Raw
+} else {
+    $current = ""
+    New-Item -ItemType Directory -Path (Split-Path $agentsPath) -Force | Out-Null
+}
+
+# Upsert: replace existing marker block if present, else append
+$pattern = '(?ms)<!-- a3ip:ai-standup-assistant:start -->.*?<!-- a3ip:ai-standup-assistant:end -->'
+if ($current -match $pattern) {
+    $updated = [regex]::Replace($current, $pattern, [System.Text.RegularExpressions.Regex]::Escape($stanza) -replace '\\', '')
+} else {
+    $updated = if ($current.Trim()) { "$current`n`n$stanza`n" } else { "$stanza`n" }
+}
+Set-Content -LiteralPath $agentsPath -Value $updated -Encoding UTF8
+```
+
+**Verification (the install AI should self-check after C5):** open
+AGENTS.md and confirm the marker block is present with the absolute
+SKILL.md path filled in. If the path is still a literal placeholder,
+substitution failed; re-run the step with the resolved install_dir.
+
+### Step C6: Initialize artifact record(s) — if any
+
+For each artifact declared in the package manifest, create a markdown
+file the runtime will keep up to date. This is the Codex-side stand-in
+for Cowork's artifact card: same purpose (one record, updated on
+trigger), different medium.
+
+```
+$record = Join-Path $installDir '<artifact-name>.md'
+if (-not (Test-Path -LiteralPath $record)) {
+    Copy-Item -LiteralPath (Join-Path $work 'components\artifacts\<artifact-name>\artifact.md') `
+              -Destination $record -Force
+}
+```
+
+If the record already exists (from a previous install), leave it in
+place — it carries the user's most recent state. The SKILL.md updates
+the file in place on each trigger.
+
+If `ai-standup-assistant` ships no artifacts, skip this step entirely.
+
+### Step C7: Write installed.json
+
+Per A3IP spec v1.10 Platform Conventions, Codex installs use
+`install_method: "generic-copy"`:
+
+```json
+{
+  "package": "ai-standup-assistant",
+  "version": "<NEW>",
+  "installed_at": "<ISO-8601 timestamp>",
+  "upgraded_from": "<previous version, or omit if fresh install>",
+  "platform": "codex",
+  "a3ip_spec": "1.10",
+  "config_dir": "{{config.install_dir}}",
+  "install_method": "generic-copy",
+  "source_bundle": "<absolute path to the .a3ip.bundle used>",
+  "backup_dir": "<absolute path to backup from C3, or omit if fresh>"
+}
+```
+
+Per spec: `upgraded_from`, `source_bundle`, and `backup_dir` are
+optional; include them when applicable. Readers MUST tolerate their
+absence.
+
+### Step C8: Verify the install end-to-end
+
+Two confirmations:
+
+1. **Static:** `a3ip validate $skill` should report
+   `[OK] Validation passed`.
+2. **Runtime:** start a NEW Codex session (so AGENTS.md is freshly
+   loaded) and say one of the package's trigger phrases. The AI should
+   recognise the trigger, read config from
+   `<install_dir>/config.json`, and behave per the SKILL.md. If it
+   instead improvises a generic response, the AGENTS.md registration
+   (Step C5) didn't take — re-check that file.
+
+### Step C9: Clean up
+
+```
+Remove-Item -LiteralPath $work -Recurse -Force -ErrorAction SilentlyContinue
+```
+
+## Upgrading an existing Codex install
+
+Triggered when Step C1 found `{{install_dir}}/installed.json`.
+
+1. Read the `version` field. Determine which CHANGELOG entries need to
+   apply (everything between installed version and the bundle's
+   version).
+2. Apply each version's `### Upgrade steps` in order. For most packages
+   on Codex this is "replace the skill files" — Steps C2 through C8
+   above suffice for any minor/patch upgrade. Artifact records are
+   preserved through Step C6's idempotency. The AGENTS.md stanza is
+   upserted in place by Step C5.
+3. For major bumps or breaking changes (per CHANGELOG `### Breaking
+   changes`), follow the explicit instructions in that version's
+   changelog entry before re-running C2–C8. If config keys changed,
+   re-run the wizard for those keys and rewrite `config.json` before
+   reinstalling the skill payload.
+4. Update `installed.json` (Step C7) with the new version and
+   `upgraded_from` = previous version. Preserve `config_dir`,
+   `install_method`, optionally bump `a3ip_spec` and `backup_dir`.
+
+## Troubleshooting
+
+**`a3ip` command not on PATH after `pip install --user`:** find the
+binary at `$env:APPDATA\Python\Python<XY>\Scripts\a3ip.exe` and invoke
+explicitly, or add that directory to PATH. (Note: most packages do
+not require `a3ip` at runtime — only the install AI uses it for
+`a3ip validate`.)
+
+**Skill files installed but trigger phrases still produce generic
+responses:** the common failure mode. Step C5 (AGENTS.md registration)
+was skipped or the marker block did not get the absolute SKILL.md
+path substituted. Open `~/.codex/AGENTS.md` and confirm the
+`ai-standup-assistant` marker block is present with the absolute path.
+
+**PowerShell `-LiteralPath` + wildcard quietly skips most files:** use
+`-Path` for wildcard copies; reserve `-LiteralPath` for exact
+filenames. After any `Copy-Item -Recurse`, verify by listing the
+destination.
+
+**Skill triggers but a script can't find config:** SKILL.md still
+contains a literal `{{install_dir}}` because Step C4's substitution
+was skipped. Re-run Step C4, ensuring `$installDir` is the absolute
+path the user chose during CONFIGURE.md.
+
+**Artifact record never updates:** the skill writes via
+`Set-Content -LiteralPath "$installDir\<artifact-name>.md"`. Confirm
+the path is correct and the user account has write permission to
+`{{config.install_dir}}`.
+
+**Unicode crash when running validate:** upgrade to a3ip CLI 1.3.1 or
+higher (`pip install --upgrade --user a3ip`). v1.3.1+ uses ASCII-safe
+console output by default. Workaround for older versions:
+`$env:PYTHONIOENCODING = 'utf-8'`.
+
+=== END FILE ===
+
+=== FILE: adapters/runtime/codex/uninstall-skill.md ===
+# Codex runtime adapter (uninstall) — ai-standup-assistant
+
+> **This file is a Creator template.** It was copied from
+> `creator-repo/components/runtime-adapter-templates/codex/uninstall-skill.md`
+> into `ai-standup-assistant/adapters/runtime/codex/uninstall-skill.md` during
+> scaffold. Generic placeholders use `ai-standup-assistant` for the package name and
+> italicised angle-bracket placeholders for per-package component
+> identifiers. Adapt the worked examples to this package's actual
+> components and remove this banner before shipping a release.
+
+This adapter is platform-knowledge for **uninstalling** `ai-standup-assistant` on
+**Codex**. The installing AI reads this as context, then applies it to
+satisfy the Tier 2 outcomes in INSTALL.md's `## Uninstalling` section
+— specifically Step UN1 (locate the install), Step UN3 (make the skill
+un-discoverable), Step UN4 (remove artifacts, if any), and Step UN5
+(make protocols no longer invocable). The mechanical steps (UN2, UN6,
+UN7, UN8) are governed by INSTALL.md and the A3IP spec, not by this
+adapter.
+
+Per A3IP spec v1.10 'Writing Adapter Documents', adapter content is
+platform knowledge, not installation script. The code blocks below are
+illustrative worked examples — adapt them to actual paths, AGENTS.md
+state, and user choices rather than executing them verbatim.
+
+This adapter is the symmetric counterpart of `install-skill.md` —
+every mechanism that the install side put in place, the uninstall side
+reverses.
+
+## How Codex stores installed packages (UN1 discovery)
+
+Codex itself does not maintain a global index of installed A3IP
+packages. Discovery goes through two places:
+
+1. **`installed.json` at the package's config directory.** For
+   `ai-standup-assistant` on Codex, the default install location is
+   `~/.codex/packages/ai-standup-assistant/` — but the user may have customised
+   it during install. Read `~/.codex/packages/ai-standup-assistant/installed.json`
+   first via the OS-appropriate file tool (on Windows where Codex CLI
+   typically runs, that is the same path-expansion rules described in
+   `adapters/os/windows/file-ops.md`).
+
+2. **The AGENTS.md marker block.** Even if `installed.json` is absent
+   or corrupted, the presence of a `<!-- a3ip:ai-standup-assistant:start -->` ...
+   `<!-- a3ip:ai-standup-assistant:end -->` block in `~/.codex/AGENTS.md`
+   indicates a prior install whose marker outlived the config
+   directory. Treat that as evidence of a partial install needing
+   cleanup: complete UN3 (marker removal) at minimum, even if the
+   config directory is already gone.
+
+If both `installed.json` and the AGENTS.md marker block are absent,
+exit cleanly — there is genuinely nothing to uninstall.
+
+Once located, read `installed.json` for `version`, `platform`,
+`config_dir`, and `install_method`. The `install_method:
+"generic-copy"` value (set during Codex install per spec v1.10) tells
+you this was a Codex-flow install and confirms you're in the right
+adapter.
+
+## How Codex un-registers skills (UN3)
+
+This is the critical inverse of install Step C5 (writing the AGENTS.md
+marker block). **Removing the AGENTS.md marker block is what actually
+makes the skill un-discoverable on Codex** — the SKILL.md file on disk
+is inert without the AGENTS.md registration. Two operations:
+
+1. **Remove the marker block from `~/.codex/AGENTS.md`.** Find the
+   lines between (and including) `<!-- a3ip:ai-standup-assistant:start -->` and
+   `<!-- a3ip:ai-standup-assistant:end -->` and delete them. Preserve every other
+   line in the file unchanged — AGENTS.md may contain unrelated
+   instructions from the user or other installations.
+
+2. **Remove the skill files at `~/.codex/skills/ai-standup-assistant/`.** This is
+   `rm -rf` semantics on the skill directory. After this, no files
+   reference the skill on disk; combined with the AGENTS.md cleanup,
+   the skill is fully gone.
+
+Order matters: remove the AGENTS.md marker FIRST. If the file removal
+fails mid-flow (e.g., permissions error), at least the registration
+is gone — which is the actually-load-bearing piece. A stale skill
+directory with no AGENTS.md reference is dormant; AGENTS.md reference
+with no skill files is broken (next session, Codex tries to read a
+missing path).
+
+Illustrative (the marker-block removal pattern):
+
+```python
+import re
+from pathlib import Path
+
+agents_md = Path.home() / ".codex" / "AGENTS.md"
+text = agents_md.read_text(encoding="utf-8")
+
+# Match the entire block, including surrounding whitespace
+pattern = re.compile(
+    r"\n*<!-- a3ip:ai-standup-assistant:start -->.*?<!-- a3ip:ai-standup-assistant:end -->\n*",
+    re.DOTALL,
+)
+new_text = pattern.sub("\n", text).rstrip() + "\n"
+
+agents_md.write_text(new_text, encoding="utf-8")
+```
+
+If the marker block is not present in AGENTS.md (the install was
+already partially uninstalled, or AGENTS.md was edited manually), do
+not treat this as an error. The outcome — "the skill is not registered
+with Codex" — is already satisfied. Continue to file removal.
+
+## How Codex removes artifacts (UN4)
+
+If `ai-standup-assistant` declared artifacts in its manifest, the install side
+seeded `{{config.install_dir}}/<artifact-name>.md` from the bundled
+`components/artifacts/<artifact-name>/artifact.md` template for each
+one. Uninstall removes these files.
+
+If the user chose to preserve at least one configuration key in
+Step UN2, an artifact MAY be preserved at the AI's discretion — it
+may carry non-derivable history. The default is to delete
+unconditionally.
+
+Illustrative (one artifact named *`<your-artifact-name>`*):
+
+```python
+from pathlib import Path
+
+artifact_record = Path(config_dir) / "<your-artifact-name>.md"
+if artifact_record.exists():
+    artifact_record.unlink()
+```
+
+If `ai-standup-assistant` ships no artifacts, this step is a no-op.
+
+## How Codex de-registers protocols (UN5)
+
+Codex protocols are registered through the same AGENTS.md marker block
+as the skill itself — the block lists trigger phrases that map to the
+SKILL.md path. So **removing the AGENTS.md marker block in UN3
+transitively un-registers the protocol triggers**, making UN5 a no-op
+on Codex once UN3 completes.
+
+If UN3 has not run yet (e.g., the user aborted between UN2 and UN3)
+and UN5 is reached anyway, the outcome cannot be satisfied — return
+to UN3.
+
+## Worked example: the uninstall flow on Codex
+
+The steps below describe one cohesive way to satisfy the Tier 2
+outcomes on Codex. The uninstall AI may adapt for variations.
+
+### Step UX1: Locate the install (UN1)
+
+Read `~/.codex/packages/ai-standup-assistant/installed.json`. If absent, check
+`~/.codex/AGENTS.md` for an `a3ip:ai-standup-assistant:start` marker. If both
+absent, exit cleanly.
+
+### Step UX2: Show the Uninstall Plan (UN2 — mechanical, handled by INSTALL.md)
+
+Walk the config schema. Per the v1.10 `preserve_on_uninstall`
+annotations, ask one focused question per `ask` key, silently purge
+each `false` key, silently preserve each `true` key. Confirm.
+
+### Step UX3: Remove AGENTS.md marker + skill files (UN3)
+
+Apply the marker-block removal pattern shown above against
+`~/.codex/AGENTS.md`. Then delete the directory tree at
+`~/.codex/skills/ai-standup-assistant/` (typical pattern:
+`shutil.rmtree(skill_dir, ignore_errors=False)`).
+
+### Step UX4: Remove artifact records (UN4)
+
+For each artifact declared in the package, delete
+`{{config.install_dir}}/<artifact-name>.md` if present. Skip if the
+user chose to preserve config and the artifact carries history the
+user wanted to keep. If `ai-standup-assistant` ships no artifacts, skip.
+
+### Step UX5: Protocols (UN5)
+
+No-op once UX3 completes (the marker-block removal already cleaned
+this up). Confirm to the user that the package's triggers no longer
+fire.
+
+### Step UX6: Trim config.json and remove install_dir contents (UN6 — mechanical)
+
+Read `config.json` from `config_dir`. Construct a new object with
+only the keys the user chose to preserve (plus any
+`preserve_on_uninstall: true` keys). Write it back, or delete the
+file if no keys survive.
+
+Delete every other file and subdirectory in `config_dir` EXCEPT
+`config.json` (if preserved) and `installed.json`. Artifact records
+were handled in UX4.
+
+### Step UX7: Remove installed.json (UN7 — mechanical)
+
+Delete `config_dir/installed.json`. If `config_dir` is now empty,
+remove the directory too.
+
+### Step UX8: Confirm (UN8 — mechanical)
+
+Tell the user the uninstall is complete. Name:
+1. The version that was uninstalled.
+2. Which configuration keys were preserved and where.
+3. Which keys were purged.
+4. That the AGENTS.md marker block was removed, and the rest of the
+   file was preserved unchanged. Re-mention this so the user knows
+   their other AGENTS.md content (if any) survived.
+5. Any leftover state: e.g., if any artifact records were preserved,
+   mention their locations.
+
+## Edge cases
+
+**AGENTS.md does not exist.** The user never had any A3IP package
+installed on this Codex setup, or they deleted AGENTS.md manually.
+UN3 becomes a partial no-op: there is no marker block to remove.
+Skill file removal (UN3 second operation) still applies if
+`~/.codex/skills/ai-standup-assistant/` exists. After UN3, confirm to the user
+that the file's absence was noted.
+
+**The AGENTS.md marker block is missing the closing marker.** Manual
+editing or a botched re-install can leave only `:start` without
+`:end`, or vice versa. The regex above will fail to match — offer
+the user a human-edited cleanup, or remove from the start marker to
+end-of-file as a fallback.
+
+**The user customised AGENTS.md content INSIDE the marker block.**
+The markers are a contract — their contents are owned by the
+package. Any hand-edits the user made between `:start` and `:end`
+will be lost when the block is removed. This is the expected
+behaviour; the AI may warn the user but does not preserve such
+edits.
+
+**The user deleted `~/.codex/skills/ai-standup-assistant/` manually between
+install and uninstall.** UN3 file-removal step is a no-op (directory
+does not exist). Continue; only the AGENTS.md cleanup matters.
+
+**Windows host with OneDrive-redirected user home.** `~/.codex/`
+resolves through `$env:USERPROFILE`, which may point to
+`C:\Users\<user>\OneDrive\` rather than `C:\Users\<user>\`. The
+Windows file-ops adapter in `adapters/os/windows/file-ops.md` covers
+this — use the YES-row tool to expand `~` properly. Bash's `~` will
+NOT work on a Windows-hosted Codex.
+
+=== END FILE ===
+
+=== FILE: adapters/runtime/cowork/install-skill.md ===
+# Cowork runtime adapter — ai-standup-assistant
+
+> **This file is a Creator template.** It was copied from
+> `creator-repo/components/runtime-adapter-templates/cowork/install-skill.md`
+> into `ai-standup-assistant/adapters/runtime/cowork/install-skill.md` during scaffold.
+> Generic placeholders use `ai-standup-assistant` for the package name and italicised
+> angle-bracket placeholders (e.g. *`<your-script>`*) for per-package
+> component identifiers. Adapt the worked examples to this package's actual
+> components and remove this banner before shipping a release.
+
+This adapter is platform-knowledge for installing `ai-standup-assistant` on Cowork.
+The installing AI reads this as context, then applies it to satisfy the
+Tier 2 outcomes in INSTALL.md — specifically the "make skills
+discoverable" step, the "make artifacts available" step (if this package
+ships artifacts), and the "make protocols invocable" step. The rest of
+INSTALL.md still applies — install detection, configure wizard, resolve
+install_dir, write config.json, write installed.json, and the Upgrading
+flow — all governed by INSTALL.md and the A3IP spec, not by this adapter.
+
+Per A3IP spec v1.10 'Writing Adapter Documents', adapter content is
+platform knowledge, not installation script. The code blocks below are
+illustrative worked examples — adapt them to actual paths and user
+choices rather than executing them verbatim.
+
+## How Cowork discovers and registers skills
+
+Cowork's **Personal Skills UI** is the registration mechanism. A skill
+placed directly into Cowork's skills folder outside of this UI flow will
+be ignored or overwritten when Cowork regenerates its internal skill
+registry on restart. The right path is:
+
+1. Build a `.skill` zip containing SKILL.md at the archive root plus any
+   bundled runtime resources (scripts, artifact templates) in
+   subdirectories.
+2. Present the zip via `mcp__cowork__present_files` so the user gets a
+   **"Save skill"** button in the chat UI.
+3. After the user clicks Save skill and restarts Cowork, the skill
+   appears in Personal Skills and is available in every session and
+   project. The restart is required — Cowork's skill registry only
+   refreshes on startup.
+
+Cowork also discovers trigger phrases from the SKILL.md's `description:`
+frontmatter automatically; no separate protocol registration is needed.
+This is why the "make protocols invocable" step is a no-op on Cowork
+once the skill installs.
+
+Per-package state (config.json, installed.json, scripts) still lives at
+`{{config.install_dir}}` per the spec — the `.skill` zip is the Cowork
+mechanism for registering the skill globally, not a replacement for the
+spec install directory.
+
+## What a .skill file is
+
+A `.skill` file is a zip archive containing SKILL.md at the root plus
+any bundled resources (scripts, artifact templates) in subdirectories.
+
+Valid SKILL.md frontmatter fields for Cowork:
+`allowed-tools`, `compatibility`, `description`, `license`, `metadata`,
+`name`.
+
+Cowork rejects `version:` and `scripts_dir:`. Strip these from the
+bundled SKILL.md before packaging — see Step C1 below.
+
+## How Cowork handles artifacts
+
+Cowork has a first-class artifact registry. The installing AI calls
+`mcp__cowork__create_artifact` during install, and the artifact appears
+in the user's sidebar immediately — not on first use. The runtime
+updates it via `mcp__cowork__update_artifact` on its trigger event. This
+is why other platform adapters (Codex, Claude Code) often degrade the
+artifact to a markdown file the runtime rewrites in place: those
+platforms lack this mechanism.
+
+If `ai-standup-assistant` ships no artifacts, skip the artifact-related steps below
+(C3, C5 of the upgrade flow).
+
+## Worked example: the install flow on Cowork
+
+The steps below are illustrative — they describe one way to achieve the
+Tier 2 outcomes on Cowork. The install AI may adapt for variations
+(non-default install_dir, alternative bundle extraction, an artifact
+that already exists from a prior install, etc.).
+
+### Step C1: Prepare SKILL.md — strip frontmatter and substitute install_dir
+
+Two transformations on the bundled SKILL.md (typically at
+`components/skills/<your-skill-name>/SKILL.md`) before packaging:
+
+1. **Strip frontmatter fields Cowork rejects** (`version:`,
+   `scripts_dir:`).
+2. **Substitute the `{{install_dir}}` placeholder** with the absolute
+   installation path the user chose (resolved in INSTALL.md Step 5).
+   Substitution is appropriate here because `install_dir` is a path
+   (non-secret, deterministic per install). Do NOT substitute secrets
+   (tokens, api keys) or other config values — those stay in config.json
+   so the skill remains portable across config changes.
+
+**Path-separator normalization (required).** The `install_dir` value
+sourced from `CONFIGURE.md` or a prior `installed.json` may end with a
+trailing path separator (`/` or `\`) — this is a normal operator habit
+on Windows in particular. SKILL.md templates use references like
+`{{install_dir}}/config.json` with a leading `/`. A naive string-replace
+of a trailing-separator value into a leading-slash template produces a
+malformed path with a doubled or mixed separator (e.g.
+`C:\Users\me\.claude\packages\ai-standup-assistant\/config.json`). POSIX hides the
+symptom because the kernel collapses `//`; Windows path APIs (including
+the Read tool used by the runtime AI) reject the mixed form. Always
+strip trailing `/` and `\` from `install_dir` before substituting so the
+resulting join is well-formed on every host OS.
+
+Illustrative (adapt the install_dir literal and the SKILL.md path):
+
+```python
+import re
+
+install_dir_abs = "<absolute path resolved in INSTALL.md Step 5>"
+install_dir_norm = install_dir_abs.rstrip("/\\")  # see normalization note above
+
+skill_md = open("components/skills/<your-skill-name>/SKILL.md", encoding="utf-8").read()
+skill_md = re.sub(r'^(version|scripts_dir):.*\n', '', skill_md, flags=re.MULTILINE)
+skill_md = skill_md.replace("{{install_dir}}", install_dir_norm)
+
+assert "{{install_dir}}" not in skill_md, "install_dir placeholder still in SKILL.md"
+open("/tmp/SKILL_clean.md", "w", encoding="utf-8").write(skill_md)
+```
+
+### Step C2: Package the runtime payload as a .skill zip
+
+The `.skill` archive contains **everything the skill needs at runtime** —
+nothing more, nothing less. The runtime payload is derived from reading
+the cleaned SKILL.md: scripts it invokes, artifact templates it reads,
+local docs it falls back to, prompts or templates it expands. Repository
+scaffolding that exists only for source-tree maintenance (git metadata,
+`.a3ip-source.json`, `__pycache__/`, top-level developer-facing README,
+INSTALL.md / CONFIGURE.md consumed at install time) is NOT part of the
+runtime payload.
+
+Layout convention: SKILL.md sits at the archive root (where Cowork
+loads it from); helper files referenced by relative path in SKILL.md
+go in matching paths under the root. Typical mapping for a package with
+one skill, one artifact (named *`<your-artifact-name>`*), and one
+script (named *`<your-script>.py`*):
+
+- `SKILL.md` (cleaned from Step C1) → archive root
+- `scripts/<your-script>.py` → `scripts/` in the archive
+- `components/artifacts/<your-artifact-name>/artifact.html` → `artifact.html` at root
+- `components/artifacts/<your-artifact-name>/artifact.md` → `artifact.md` at root
+
+Note that artifact files move to the archive root, not `components/...`
+— that's where the runtime SKILL.md looks for them. This is a deliberate
+re-layout: source tree organization (`components/artifacts/<name>/`)
+differs from the runtime layout the skill expects. The install adapter
+is the one place that knows about both.
+
+Illustrative (adapt paths to actual bundle extraction and component
+names):
+
+```python
+import zipfile, pathlib
+
+pkg_dir = pathlib.Path(".")  # run from inside the ai-standup-assistant.a3ip/ directory
+out_path = pathlib.Path("/tmp/ai-standup-assistant.skill")
+
+with zipfile.ZipFile(out_path, "w", zipfile.ZIP_DEFLATED) as zf:
+    zf.write("/tmp/SKILL_clean.md", "SKILL.md")
+
+    for f in sorted((pkg_dir / "scripts").rglob("*")):
+        if f.is_file() and "__pycache__" not in f.parts:
+            zf.write(f, f.relative_to(pkg_dir))
+
+    artifact_dir = pkg_dir / "components" / "artifacts" / "<your-artifact-name>"
+    if artifact_dir.is_dir():
+        for f in sorted(artifact_dir.iterdir()):
+            if f.is_file():
+                zf.write(f, f.name)
+```
+
+The principle is *bundle what the skill uses at runtime*, derived from
+reading SKILL.md, then place each piece where SKILL.md expects to find
+it.
+
+### Step C3: Create the package's artifact(s) — if any
+
+Each artifact must exist in Cowork's artifact registry before the user
+triggers a workflow that updates it. Create them now (during install)
+in the current Cowork session so they appear immediately.
+
+For each artifact declared in the package manifest:
+
+1. Read `components/artifacts/<artifact-name>/artifact.html` from the
+   bundle.
+2. Call `mcp__cowork__list_artifacts` to check whether an artifact with
+   this name already exists (idempotency for re-installs).
+3. If it does not exist, call `mcp__cowork__create_artifact`:
+
+```
+mcp__cowork__create_artifact
+  name: "<artifact-name>"
+  content: <full HTML content of artifact.html>
+```
+
+If an artifact with this name already exists (from a previous install),
+leave it in place — it may contain the user's recent state. The skill
+updates it via `mcp__cowork__update_artifact` on each trigger.
+
+If `ai-standup-assistant` ships no artifacts, skip this step entirely.
+
+### Step C4: Present the .skill to the user
+
+Copy the `.skill` file to the Cowork outputs directory (session
+scratchpad), then call `mcp__cowork__present_files`. This renders an
+interactive card with a **"Save skill"** button.
+
+```
+mcp__cowork__present_files  ->  file_path: <outputs_dir>/ai-standup-assistant.skill
+```
+
+Tell the user:
+> "Click the **Save skill** button on the card to install ai-standup-assistant into
+> Cowork. Once you've saved it, restart Cowork — the skill will appear
+> in Personal Skills and will be available in every project."
+
+If artifacts were created in Step C3, add:
+> "Your *`<artifact-name>`* card is already in your artifacts list — it
+> will update automatically when the workflow triggers it."
+
+### Step C5: Verify after restart
+
+After the user restarts Cowork, confirm the skill appears in Personal
+Skills. Then verify end-to-end by saying one of the trigger phrases
+declared in the package's protocols. The AI should recognise the
+trigger, read config from `<install_dir>/config.json`, and behave per
+the SKILL.md.
+
+### Step C6: Write installed.json for Cowork installs
+
+Cowork installs MUST set `install_method: "cowork-skill"` in
+installed.json so future upgrades know to rebuild the `.skill` rather
+than patch files in place:
+
+```json
+{
+  "package": "ai-standup-assistant",
+  "version": "<NEW>",
+  "installed_at": "<ISO timestamp>",
+  "platform": "cowork",
+  "a3ip_spec": "1.10",
+  "config_dir": "{{config.install_dir}}",
+  "install_method": "cowork-skill"
+}
+```
+
+Write this file at `{{config.install_dir}}/installed.json` per spec.
+
+## Upgrading an existing Cowork install
+
+Triggered by INSTALL.md Step 1 finding `installed.json` at
+`{{config.install_dir}}/installed.json` with
+`install_method: "cowork-skill"`.
+
+1. **Read installed version** from `installed.json` (this is Step U1 of
+   the spec Upgrading flow).
+2. **Apply CHANGELOG steps** (Step U2). For each version between
+   installed and current, follow `### Upgrade steps` exactly. Note any
+   config changes — if a new required key is added, run the configure
+   wizard for that key only and write back to `config.json`.
+3. **Rebuild the `.skill` file** from the new bundle (Steps C1–C2
+   above).
+4. **(Idempotent)** check declared artifacts still exist via
+   `mcp__cowork__list_artifacts`; create any missing ones (Step C3
+   above).
+5. **Present the new `.skill`** via `mcp__cowork__present_files`
+   (Step C4).
+6. **Tell the user:**
+   > "An updated version is ready. Click **Save skill** to replace the
+   > existing one, then restart Cowork. Cowork will use the new
+   > version automatically. Your config.json at
+   > `{{config.install_dir}}/config.json` is unchanged."
+7. **After the user confirms restart,** overwrite `installed.json`
+   (Step U3 of the spec) with the new `version` and `installed_at`
+   timestamp, preserving `platform`, `a3ip_spec`, `config_dir`, and
+   `install_method`.
+
+## Troubleshooting
+
+**Install AI reports "fresh install" but the user expected an upgrade**
+— Step 1 of INSTALL.md checks `{{config.install_dir}}/installed.json`.
+If that file is missing (e.g. a prior install didn't complete past the
+installed.json write step), detection correctly returns fresh-install.
+Confirm with the user whether a prior install attempt completed.
+
+**"Save skill" button not visible** — the `.skill` file must be under
+the outputs directory or a connected folder to be presentable via
+`present_files`.
+
+**Skill saves but doesn't trigger on its trigger phrases** — confirm
+Cowork was restarted after saving. The skill registry only refreshes
+on restart.
+
+**Script fails with "config file not found"** — the skill expects
+`<install_dir>/config.json`. Confirm INSTALL.md Step 5 (Resolve
+install_dir) and the install-scripts step ran successfully. The user
+can re-run the configure wizard at any time to rewrite the file.
+
+**Artifact card doesn't appear after install** — Step C3 was skipped
+or `mcp__cowork__create_artifact` failed. Re-run Step C3. The artifact
+lives in Cowork's artifact registry, not in the skill zip, so it
+persists independently of the skill itself.
+
+**Skill disappears after Cowork restart** — it was not registered
+through the UI flow. Repeat Steps C1–C4 and use **Save skill**, not a
+manual file copy.
+
+=== END FILE ===
+
+=== FILE: adapters/runtime/cowork/uninstall-skill.md ===
+# Cowork runtime adapter (uninstall) — ai-standup-assistant
+
+> **This file is a Creator template.** It was copied from
+> `creator-repo/components/runtime-adapter-templates/cowork/uninstall-skill.md`
+> into `ai-standup-assistant/adapters/runtime/cowork/uninstall-skill.md` during
+> scaffold. Generic placeholders use `ai-standup-assistant` for the package name and
+> italicised angle-bracket placeholders (e.g. *`<your-artifact-name>`*)
+> for per-package component identifiers. Adapt the worked examples to
+> this package's actual components and remove this banner before
+> shipping a release.
+
+This adapter is platform-knowledge for **uninstalling** `ai-standup-assistant` on
+Cowork. The installing AI reads this as context, then applies it to
+satisfy the Tier 2 outcomes in INSTALL.md's `## Uninstalling` section
+— specifically Step UN1 (locate the install), Step UN3 (make the skill
+un-discoverable), Step UN4 (remove the artifact, if any), and Step UN5
+(make protocols no longer invocable). The mechanical steps (UN2, UN6,
+UN7, UN8) are governed by INSTALL.md and the A3IP spec, not by this
+adapter.
+
+Per A3IP spec v1.10 'Writing Adapter Documents', adapter content is
+platform knowledge, not installation script. The code blocks below are
+illustrative worked examples — adapt them to actual paths and user
+choices rather than executing them verbatim.
+
+This adapter is the symmetric counterpart of `install-skill.md` —
+every mechanism that the install side put in place, the uninstall side
+reverses.
+
+## How Cowork stores installed packages (UN1 discovery)
+
+Cowork itself does not maintain a global index of which A3IP packages
+are installed. Discovery is per-package and goes through the package's
+own `installed.json` artifact at the configured `install_dir`.
+
+For `ai-standup-assistant` on Cowork, the default install location is typically
+`~/.claude/packages/ai-standup-assistant/` — but the user may have customised it
+during the configure wizard. So the discovery procedure is:
+
+1. **Default-path check first.** Read
+   `~/.claude/packages/ai-standup-assistant/installed.json` via
+   `mcp__filesystem__read_file`. On Cowork (Windows), `~` expands to
+   the Windows user home through that tool. If the file exists, parse
+   its `config_dir` field — that is the authoritative install location
+   for THIS install. (The default-path lookup is just a starting
+   point; the user may have customised.)
+
+2. **Followed by the file's own `config_dir`.** Once you have the
+   file's `config_dir`, that is where every subsequent uninstall step
+   operates. Treat it as authoritative for the rest of the flow.
+
+3. **If the default-path file is absent**, the user almost certainly
+   did not customise `install_dir` (custom paths only happen if the
+   user actively typed one in during install). Exit cleanly: tell the
+   user "ai-standup-assistant is not installed at the platform-default location;
+   if you customised install_dir on install, please provide the path."
+
+Do NOT use the bash sandbox to read `installed.json` — bash's `~` is
+the ephemeral Linux sandbox home, not the Windows user home. The
+`mcp__filesystem__read_file` tool is the right path.
+
+## How Cowork un-registers skills (UN3)
+
+The install side registers the skill via the **Personal Skills UI** —
+the user drags the `.skill` zip into Cowork and clicks "Save skill".
+Uninstall inverts this:
+
+1. **Tell the user to remove the skill from the Cowork UI.** Cowork
+   does not expose a programmatic skill-removal API to the running
+   session. The user removes `ai-standup-assistant` (named per the SKILL.md's
+   `name:` field inside Cowork's Personal Skills panel) by selecting
+   it and clicking the delete/remove action. Cowork will prompt for
+   confirmation.
+
+2. **Cowork's skill registry is in-process state**, refreshed at
+   startup. After the user removes the skill, ask them to restart
+   Cowork so the removal takes effect for new sessions. (The current
+   session may still have the skill loaded; that's harmless — the
+   file is gone, future sessions won't see it.)
+
+3. **Do not try to delete skill files from disk yourself.** Cowork
+   stores installed skills under an internal location managed by the
+   UI; touching it from outside can corrupt the registry. The UI
+   removal is the only supported deregistration path.
+
+Once the skill is removed from Personal Skills, its `description:`
+trigger phrases are no longer registered with Cowork — which
+transitively satisfies Step UN5 (protocols no longer invocable) since
+Cowork loads protocol triggers from the skill's frontmatter.
+
+Illustrative (the message you send to the user during Step UN3 —
+substitute the skill's Cowork display name):
+
+```text
+To complete the uninstall, open Cowork's Personal Skills panel
+(usually in the sidebar or settings), find "<your-skill-name>", and
+click Remove. Cowork will prompt for confirmation. After removal,
+restart Cowork so the skill no longer appears in new sessions.
+```
+
+## How Cowork removes artifacts (UN4)
+
+If `ai-standup-assistant` declared artifacts in its manifest, the install side
+called `mcp__cowork__create_artifact` to surface each one in the
+user's sidebar. Uninstall calls `mcp__cowork__list_artifacts` to find
+them, then `mcp__cowork__allow_cowork_file_delete` (or the platform's
+artifact deletion mechanism if available) to remove them.
+
+Cowork's artifact registry is per-user, so artifacts are identified
+by name rather than by absolute path. If `mcp__cowork__list_artifacts`
+returns multiple artifacts with the same name from prior installs,
+remove all of them.
+
+Illustrative (the artifact removal pattern for one artifact named
+*`<your-artifact-name>`*):
+
+```python
+# Find the artifact by name
+artifacts = mcp__cowork__list_artifacts()
+matching = [a for a in artifacts if a["name"] == "<your-artifact-name>"]
+
+# Remove each match
+for art in matching:
+    mcp__cowork__allow_cowork_file_delete(art["id"])
+```
+
+If Cowork's environment does not provide a programmatic deletion
+mechanism for the artifact, fall back to asking the user to remove it
+through the Cowork artifact sidebar UI manually.
+
+If at least one configuration key was preserved in Step UN2 (e.g., the
+user keeps a token), the artifact MAY be preserved at the AI's
+discretion — the card's content is often persisted history, which the
+user may want to keep. The default is to remove unconditionally.
+
+If `ai-standup-assistant` ships no artifacts, this step is a no-op.
+
+## How Cowork de-registers protocols (UN5)
+
+Cowork loads protocol trigger phrases from the SKILL.md `description:`
+frontmatter at session start. Once Step UN3 removes the skill from
+Personal Skills, the triggers are no longer loaded on the next session
+start — so Step UN5 is a no-op once UN3 completes.
+
+If you reach Step UN5 and the skill is still present in Personal Skills
+(UN3 was skipped or failed), Step UN5 cannot succeed on Cowork —
+return to UN3 and complete it first.
+
+## Worked example: the uninstall flow on Cowork
+
+The steps below describe one cohesive way to satisfy the Tier 2
+outcomes on Cowork. The uninstall AI may adapt for variations (e.g.,
+the artifact was already removed by a prior partial uninstall; the
+user customised install_dir; the skill is no longer in Personal Skills
+because Cowork was reinstalled).
+
+### Step UC1: Locate the install (UN1)
+
+Read `~/.claude/packages/ai-standup-assistant/installed.json` via
+`mcp__filesystem__read_file`. If present, capture `config_dir`,
+`version`, `platform`. If absent, exit cleanly.
+
+### Step UC2: Show the Uninstall Plan (UN2 — mechanical, handled by INSTALL.md)
+
+Walk the config schema. Per the v1.10 `preserve_on_uninstall`
+annotations, ask one focused question per `ask` key, silently purge
+each `false` key, silently preserve each `true` key. Confirm and
+proceed.
+
+### Step UC3: Skill removal (UN3)
+
+Send the user the message above asking them to remove the skill from
+Personal Skills and restart Cowork. Wait for confirmation that they
+have done so before moving on.
+
+### Step UC4: Artifact removal (UN4)
+
+For each artifact declared in the package: call
+`mcp__cowork__list_artifacts` to find matches by name. Remove each
+one. If the user chose to preserve config and the artifact carries
+non-derivable history, the AI MAY skip artifact removal at its
+discretion (this is the exception noted in INSTALL.md Step UN4).
+
+If `ai-standup-assistant` ships no artifacts, skip.
+
+### Step UC5: Protocols (UN5)
+
+No-op on Cowork once UC3 completes. Confirm to the user that triggers
+are no longer registered.
+
+### Step UC6: Trim config.json and remove install_dir contents (UN6 — mechanical)
+
+Read `config.json` from `config_dir`. Construct a new object with
+only the keys the user chose to preserve (and any
+`preserve_on_uninstall: true` keys). Write it back (or delete the
+file if no keys survive).
+
+Delete every other file and subdirectory in `config_dir` except
+`config.json` (if preserved) and `installed.json`. Use
+`mcp__filesystem__list_directory` and `allow_cowork_file_delete` for
+each item.
+
+### Step UC7: Remove installed.json (UN7 — mechanical)
+
+Delete `config_dir/installed.json`. If `config_dir` is now empty,
+remove the directory too.
+
+### Step UC8: Confirm (UN8 — mechanical)
+
+Tell the user the uninstall is complete. Name:
+1. The version that was uninstalled (from `installed.json`).
+2. Which configuration keys were preserved and where.
+3. Which keys were purged.
+4. That the Personal Skills entry has been removed and Cowork was
+   restarted — the package's triggers no longer fire.
+5. Any leftover state: e.g., if the user previously had history in an
+   artifact and the artifact was preserved, mention where it lives in
+   the Cowork sidebar.
+
+## Edge cases
+
+**The skill was already removed from Personal Skills before uninstall
+ran.** This is fine. Step UC3 becomes a no-op; the AI tells the user
+"the skill is already absent from Personal Skills; continuing with
+config and file cleanup."
+
+**`installed.json` is missing but the install_dir has other files.**
+This indicates a partial install (UN6/UN7 ran in a prior uninstall but
+UN8 confirmation didn't reach the user). The AI MAY offer to clean up
+the leftover files or leave them in place at the user's choice.
+
+**The user changed the `install_dir` since install.** The `config_dir`
+stored in `installed.json` is the authoritative source. If the user
+moved the directory between install and uninstall, ask them where the
+package's files actually live and use that path instead.
+
+=== END FILE ===
+
+=== FILE: CHANGELOG.md ===
+---
+format: a3ip-changelog
+spec: "1.1"
+package: ai-standup-assistant
+---
+
+# Changelog: ai-standup-assistant
+
+This file documents changes between versions of this package.
+Each version section contains:
+- A human-readable **Summary** of what changed
+- **Upgrade steps** — AI-readable instructions for applying this version's changes
+  (written exactly like INSTALL.md steps; apply only what changed)
+- **Breaking changes** — config keys renamed/removed, new required MCPs, etc.
+  (an AI receiving an upgrade must re-run the wizard for any affected fields)
+
+New version entries go at the **top** of this file (newest first).
+
+---
+
+## 1.0.0
+
+*Released: TODO*
+
+### Summary
+
+Initial release.
+
+### Upgrade steps
+
+*(No prior version — this is the initial release. Run the full INSTALL.md.)*
+
+### Breaking changes
+
+None (initial release).
+
+=== END FILE ===
+
+=== FILE: components/artifacts/todays-standup/artifact.html ===
+<style>
+  .standup-root { padding: 1.5rem; max-width: 64rem; margin: 0 auto; font-family: ui-sans-serif, system-ui, -apple-system, sans-serif; }
+  .standup-header { border-bottom: 1px solid var(--border, #e5e7eb); padding-bottom: 0.75rem; margin-bottom: 1.25rem; display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+  .standup-title { font-size: 1.5rem; font-weight: 600; margin: 0; color: var(--text-primary, #111); }
+  .standup-subtitle { font-size: 0.875rem; color: var(--text-secondary, #666); margin: 0.25rem 0 0 0; }
+  .standup-stamp { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-tertiary, #888); }
+  .standup-stamp-label { font-weight: 500; margin-right: 0.5rem; }
+  .standup-grid { display: grid; gap: 1rem; grid-template-columns: 1fr; }
+  @media (min-width: 768px) { .standup-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  .standup-section { border: 1px solid var(--border, #e5e7eb); border-radius: 0.5rem; padding: 1rem; background: var(--bg-section, transparent); }
+  .standup-section-title { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 0.75rem 0; }
+  .standup-section--yesterday .standup-section-title { color: var(--accent-green, #16a34a); }
+  .standup-section--today .standup-section-title { color: var(--accent-blue, #2563eb); }
+  .standup-section--blockers .standup-section-title { color: var(--accent-amber, #d97706); }
+  .standup-content { font-size: 0.875rem; line-height: 1.5; }
+  .standup-content > * + * { margin-top: 0.5rem; }
+  .standup-content ul { margin: 0; padding-left: 1.1rem; }
+  .standup-content li { margin: 0.25rem 0; }
+  .standup-content .empty { color: var(--text-secondary, #666); font-style: italic; }
+  .standup-footer { margin-top: 1.5rem; padding-top: 0.75rem; border-top: 1px solid var(--border, #e5e7eb); display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; font-size: 0.75rem; color: var(--text-tertiary, #888); }
+  .standup-code { padding: 0.125rem 0.375rem; border-radius: 0.25rem; background: var(--bg-code, rgba(0,0,0,0.06)); font-family: ui-monospace, SFMono-Regular, monospace; }
+</style>
+<div class="standup-root">
+  <header class="standup-header">
+    <div>
+      <h1 class="standup-title">Today's Standup</h1>
+      <p class="standup-subtitle">Compiled by standup-assistant.</p>
+    </div>
+    <div class="standup-stamp">
+      <span class="standup-stamp-label">Updated</span>
+      <span><!-- COMPILED-AT -->Not yet compiled - run "run standup" to populate.<!-- /COMPILED-AT --></span>
+    </div>
+  </header>
+
+  <div class="standup-grid">
+
+    <section class="standup-section standup-section--yesterday">
+      <h2 class="standup-section-title">Yesterday</h2>
+      <div class="standup-content">
+        <!-- YESTERDAY -->
+        <p class="empty">No activity yet. The run-standup protocol will populate this section.</p>
+        <!-- /YESTERDAY -->
+      </div>
+    </section>
+
+    <section class="standup-section standup-section--today">
+      <h2 class="standup-section-title">Today</h2>
+      <div class="standup-content">
+        <!-- TODAY -->
+        <p class="empty">Run the protocol to populate today's intent.</p>
+        <!-- /TODAY -->
+      </div>
+    </section>
+
+    <section class="standup-section standup-section--blockers">
+      <h2 class="standup-section-title">Blockers</h2>
+      <div class="standup-content">
+        <!-- BLOCKERS -->
+        <p class="empty">No blockers tracked yet.</p>
+        <!-- /BLOCKERS -->
+      </div>
+    </section>
+
+  </div>
+
+  <footer class="standup-footer">
+    <span>Trigger: <code class="standup-code">run standup</code></span>
+    <span>Sources: <!-- SOURCES -->configured projects<!-- /SOURCES --></span>
+  </footer>
+</div>
+
+=== END FILE ===
+
+=== FILE: components/artifacts/todays-standup/artifact.md ===
+# Today's Standup
+
+*Compiled by standup-assistant. Refreshed by the `run-standup` protocol.*
+
+**Updated:** <!-- COMPILED-AT -->Not yet compiled - run "run standup" to populate.<!-- /COMPILED-AT -->
+
+---
+
+## Yesterday
+
+<!-- YESTERDAY -->
+_No activity yet. The run-standup protocol will populate this section._
+<!-- /YESTERDAY -->
+
+## Today
+
+<!-- TODAY -->
+_Run the protocol to populate today's intent._
+<!-- /TODAY -->
+
+## Blockers
+
+<!-- BLOCKERS -->
+_No blockers tracked yet._
+<!-- /BLOCKERS -->
+
+---
+
+**Trigger:** `run standup`
+**Sources:** <!-- SOURCES -->configured projects<!-- /SOURCES -->
+
+=== END FILE ===
+
+=== FILE: components/protocols/run-standup.md ===
+---
+name: run-standup
+trigger: "run standup"
+aliases:
+  - "compile standup"
+  - "today's standup"
+  - "standup time"
+  - "what's my standup"
+---
+
+## What this protocol does
+
+Aggregates the user's last-24h GitHub activity across configured projects, classifies into yesterday/today/blockers, renders per the user's chosen format, and refreshes the Today's Standup artifact card.
+
+## Steps
+
+1. Load config.json from {{install_dir}}/config.json (path-separator normalize before composing). Validate that projects is non-empty and author_login is set; if missing, tell the user the config is incomplete and stop.
+2. Compute the date window: default last 24 hours. Accept natural-language overrides from the trigger phrase ('for the last 3 days', 'for the last 30 days', 'since Friday') and adjust the window accordingly.
+3. For each project in config.projects: call the GitHub MCP to list_commits authored by config.author_login since window_start; list_pull_requests filtered to PRs the user opened or is requested-reviewer on; search_issues for issues assigned to the user with state:open.
+4. Classify aggregated items into Yesterday (commits + merged/closed PRs + closed issues in window), Today (open PRs user owns + open assigned issues with window activity), Blockers (PRs awaiting user's review for > config.blocker_window_days; issues with no commit/PR activity in window).
+5. Render per config.standup_format: concise (3 short lines), detailed (markdown subsections with bullets, repo name in parens when projects > 1), narrative (~80-word first-person paragraph for Slack-pasting).
+6. Refresh the Today's Standup artifact: call mcp__cowork__list_artifacts to find 'todays-standup'; if present call update_artifact with new HTML; if absent call create_artifact with the artifact.html template, substituting the YESTERDAY / TODAY / BLOCKERS / COMPILED-AT / SOURCES markers.
+7. If config.history_dir is non-empty: append a markdown record to {{history_dir}}/standups/YYYY-MM-DD.md (create the standups/ subdir if needed). Overwrite same-day re-runs. Warn-but-don't-fail on write errors -- the artifact is the primary deliverable.
+8. Confirm to the user. If any project query failed (rate-limited, repo not accessible), name which ones and what was lost. If history was written, name the file path.
+
+## Config values used
+
+- `{{config.install_dir}}` — Installation directory
+- `{{config.projects}}` — GitHub projects to track
+- `{{config.author_login}}` — Your GitHub login
+- `{{config.standup_format}}` — Standup output format
+- `{{config.blocker_window_days}}` — Blocker detection threshold (days)
+- `{{config.history_dir}}` — Standup history directory (optional)
+
+## Outputs
+
+TODO: List what this protocol produces (files written, messages sent, etc.)
+
+=== END FILE ===
+
+=== FILE: components/skills/standup-assistant/SKILL.md ===
+---
+name: standup-assistant
+description: "Generates a structured daily standup by aggregating activity across configured GitHub repos. Reports yesterday's commits and merged PRs, today's work in progress (open PRs, in-flight issues), and blockers (PRs awaiting your review, issues stalled beyond a threshold). Renders the result to the 'Today's Standup' Cowork artifact. Trigger phrases: 'run standup', 'compile standup', 'today's standup', 'standup time', 'what's my standup'."
+allowed-tools: ["mcp__github__list_commits", "mcp__github__list_pull_requests", "mcp__github__search_issues", "mcp__github__get_pull_request", "mcp__cowork__update_artifact", "mcp__cowork__list_artifacts", "mcp__cowork__create_artifact", "mcp__filesystem__read_file", "mcp__filesystem__write_file"]
+---
+
+# standup-assistant
+
+This skill makes the AI a daily standup compiler. The user types a trigger
+phrase ("run standup"); the AI queries GitHub for the user's recent
+activity across configured projects, structures it into a yesterday /
+today / blockers report, and refreshes the **Today's Standup** Cowork
+artifact card. No external services beyond GitHub; everything else is
+LLM reasoning over the activity payload.
+
+## When to use this skill
+
+Triggered by any of these natural-language phrases:
+
+- **run standup** / **compile standup** / **today's standup** / **standup time** / **what's my standup**
+  → apply the `run-standup` protocol.
+
+Outside these triggers, the AI may proactively offer the standup when
+the user mentions an upcoming standup meeting in conversation — but
+should ask before running (the protocol makes several MCP calls).
+
+## Configuration
+
+The skill reads its configuration once at session start from
+`{{install_dir}}/config.json` (its absolute path is baked in at install
+time by the install adapter). Required keys:
+
+```json
+{
+  "projects": [
+    {"owner": "acme-corp", "repo": "primary-app"},
+    {"owner": "acme-corp", "repo": "shared-libs"}
+  ],
+  "author_login": "maksymprydorozhko",
+  "standup_format": "detailed",
+  "blocker_window_days": 3,
+  "history_dir": ""
+}
+```
+
+Field semantics:
+
+- **`projects`** — list of GitHub repos to aggregate across. The AI
+  queries each in turn. Empty list is invalid (caught by install
+  validation).
+- **`author_login`** — the user's GitHub login. Used to filter
+  commits, PRs, and issues to those involving the user.
+- **`standup_format`** — `concise` (3-line summary), `detailed` (full
+  yesterday/today/blockers with bullets), or `narrative` (1-paragraph
+  prose suitable for pasting into Slack/Teams). Default `detailed`.
+- **`blocker_window_days`** — integer. An item is classified as a
+  blocker if it's been "open and unresolved" for at least this many
+  days. Default `3`.
+- **`history_dir`** — optional absolute path. If non-empty, each run
+  appends a record to `{{history_dir}}/standups/YYYY-MM-DD.md` for
+  retrospective review. If empty, only the artifact is updated and no
+  filesystem trail is kept.
+
+### Path-separator normalization (required)
+
+The `install_dir` and `history_dir` values may end with a trailing
+separator (`/` or `\`). Strip trailing `/` and `\` from each value
+before composing paths like `{{install_dir}}/config.json` or
+`{{history_dir}}/standups/2026-06-21.md`. POSIX collapses `//`; Windows
+path APIs (the Read tool on Cowork's bash and on Codex's file tools)
+reject mixed separators. Same lesson learned in Samples A and B.
+
+## Protocols
+
+### run-standup
+
+**Trigger phrases:** "run standup", "compile standup", "today's
+standup", "standup time", "what's my standup".
+
+**Outcome:** the **Today's Standup** Cowork artifact is refreshed with
+yesterday-today-blockers content reflecting the user's last 24-hour
+GitHub activity across all configured projects, and optionally a
+markdown record is appended to the history directory.
+
+**Steps:**
+
+1. **Load config.** Read `config.json` from the install_dir baked into
+   this SKILL.md at install time. Strip trailing separators from
+   `install_dir` and `history_dir` before use. Validate that
+   `projects` is non-empty and `author_login` is set; if either is
+   missing, tell the user "your standup-assistant config is
+   incomplete — run the configure wizard again" and stop.
+
+2. **Compute the date window.** "Yesterday" = the previous 24 hours
+   from now. Use ISO-8601 timestamps. Carry both the start and end
+   times for filtering API responses. If the user adds a phrase like
+   "since Friday" or "for the last 3 days" to the trigger, override
+   the default 24-hour window accordingly — the AI is in charge of
+   interpreting the natural-language hint.
+
+3. **Aggregate per project.** For each entry in `projects`:
+   - Call `mcp__github__list_commits` with `owner`, `repo`,
+     `author=author_login`, and `since=window_start`. Collect: commit
+     SHA prefix, message first line, repo.
+   - Call `mcp__github__list_pull_requests` with `owner`, `repo`,
+     `state=all`, sort by updated descending. Filter client-side to
+     PRs where the user is the author OR where the user is a
+     requested reviewer AND the PR was created/updated in the
+     window. Collect: PR number, title, state, the user's role
+     (author / reviewer-pending), whether merged, merged_at.
+   - Call `mcp__github__search_issues` with `q=assignee:author_login
+     state:open repo:owner/repo` to find issues currently assigned
+     to the user. For each, note `updated_at`, `created_at`,
+     `labels`, and whether the body or recent comments mention
+     "blocked", "waiting on", "depends on".
+
+4. **Classify into the three sections.**
+   - **Yesterday** = commits authored in window + PRs merged or
+     closed in window + issues moved to closed in window.
+   - **Today** = open PRs the user owns that aren't yet merged +
+     issues currently open and assigned to the user that have
+     activity in the window (i.e. you're actively touching them) +
+     unfinished items from yesterday's "Today" if available in the
+     artifact's prior state (carry-over).
+   - **Blockers** = PRs awaiting the user's review (PRs the user is
+     requested on but hasn't approved) for > `blocker_window_days`
+     days + issues assigned to the user with no commits or PRs in
+     the last `blocker_window_days` days + items the user's recent
+     PR comments mention as "blocked on" / "waiting on".
+
+5. **Render per format.**
+   - `concise`: three short lines, one per section, comma-joined
+     bullets.
+   - `detailed`: each section as a markdown subsection with bulleted
+     items. Each item includes the repo name in parens for context
+     when projects > 1.
+   - `narrative`: one paragraph in first person, suitable for
+     pasting into a Slack standup channel. ~80 words total.
+
+6. **Refresh the Today's Standup artifact.** Call
+   `mcp__cowork__list_artifacts` to find the existing
+   `todays-standup` artifact. If it exists, call
+   `mcp__cowork__update_artifact` with the new HTML content. If it
+   does not exist (e.g. install-time artifact creation failed), call
+   `mcp__cowork__create_artifact` with the rendered HTML and inform
+   the user the artifact was created.
+
+   The HTML template is in this skill's resources under
+   `artifact.html` (a Tailwind-classed three-column layout for
+   yesterday/today/blockers, plus a "compiled at" timestamp footer).
+   Substitute the rendered sections in place of the
+   `<!-- YESTERDAY -->`, `<!-- TODAY -->`, `<!-- BLOCKERS -->`,
+   `<!-- COMPILED-AT -->` markers.
+
+7. **Optionally append to history.** If `history_dir` is non-empty:
+   - Compute path `{{history_dir}}/standups/YYYY-MM-DD.md`.
+   - Create the `standups/` directory if absent.
+   - Write the markdown form of the standup (sections as `##`
+     subheadings + bullets) to the dated file. Overwrite if it
+     exists — a same-day re-run replaces the prior record.
+   - If write fails (path not writable), warn the user but DO NOT
+     fail the run — the artifact refresh is the primary deliverable.
+
+8. **Confirm to the user.** Say "Standup compiled. Open the Today's
+   Standup card to see it." If history was written, name the file
+   path. If any project query failed (rate-limited, repo not
+   accessible), name which ones and what fell back.
+
+### What this protocol does NOT do
+
+- It does NOT post anywhere outside the artifact and the optional
+  history file. No Slack, no Teams, no email. Future versions might
+  add that as an opt-in.
+- It does NOT modify GitHub state (no comments, no review approvals,
+  no issue changes). It's read-only against GitHub.
+- It does NOT set up a scheduled task automatically. If the user
+  wants a daily morning run, they create a Cowork scheduled task
+  manually pointing at the `run-standup` trigger phrase. The
+  install adapter mentions this as a suggestion but doesn't do it.
+
+## Artifacts
+
+### Today's Standup
+
+A single Cowork artifact card showing yesterday's wins, today's
+intent, and current blockers. Refreshed by the `run-standup`
+protocol on each invocation. The card persists across runs (it's
+created at install time and lives in the user's Cowork sidebar
+permanently), so the user can glance at it during standup meetings
+without rerunning.
+
+The card's layout is three columns on desktop, three stacked
+sections on mobile, with a "compiled HH:MM today" footer that makes
+staleness obvious if the user forgets to refresh.
+
+## Troubleshooting
+
+**"GitHub MCP not connected" error** — the user needs the **official
+GitHub MCP server**, not Cowork's built-in "GitHub Integration"
+connector. The two are different surfaces: the "GitHub Integration"
+that ships with Cowork provides repo-file attachment and project sync;
+it does NOT expose the activity-query tools this skill needs
+(`list_commits`, `list_pull_requests`, `search_issues`).
+
+Tell the user verbatim:
+
+> "This skill needs the official GitHub MCP server, which is separate
+> from the 'GitHub Integration' connector that's preinstalled in
+> Cowork. To add it: open Settings → Connectors, click the `+` button
+> at the top of the connector list, choose 'Add custom / remote MCP',
+> set the type to HTTP, paste the URL
+> `https://api.githubcopilot.com/mcp/`, and complete the OAuth
+> authentication with your GitHub account. The account must have
+> read access to every repo listed in your standup config. Once it's
+> connected, say 'run standup' again."
+
+If the user reports the `+` button doesn't let them add a custom URL,
+that's a plan/admin constraint on their Cowork — there's no
+skill-side workaround.
+
+**Empty standup ("no activity in window")** — verify that
+`author_login` is correct (`gh api user` returns the right login).
+Also: weekends and holidays naturally produce empty windows; offer to
+extend the window with "run standup for the last 3 days."
+
+**Blockers section is huge** — `blocker_window_days` is set too low.
+The configure wizard's default is 3, which is correct for most teams
+but the user can raise it.
+
+**Artifact not refreshing on Cowork** — check that the artifact named
+`todays-standup` exists (call `mcp__cowork__list_artifacts`). If
+absent, the install-time artifact creation step failed; ask the user
+to reinstall the package or manually call
+`mcp__cowork__create_artifact` with the bundled `artifact.html`.
+
+**Multiple GitHub accounts** — v1.0.0 supports one account.
+Multi-account support is a v1.1 candidate.
+
+=== END FILE ===
+
+=== FILE: CONFIGURE.md ===
+---
+format: a3ip-configure
+spec: "1.10"
+package: ai-standup-assistant
+---
+
+# Configuration Wizard: ai-standup-assistant
+
+You are setting up this workflow. Ask the questions below in order.
+Be conversational — no need to present them as a rigid form.
+Collect all required values before moving to installation.
+
+## Before Installation — ask these first
+
+---
+
+### 1. Installation directory
+Ask:
+> "What is your Installation directory? Directory where ai-standup-assistant's config.json, installed.json, and scripts will be stored. Default depends on the target platform:
+  - Claude Code: ~/.claude/packages/ai-standup-assistant/
+  - Codex: ~/.codex/packages/ai-standup-assistant/
+  - Cowork: ~/.claude/packages/ai-standup-assistant/. IMPORTANT for the install AI: expand the user-typed value to an absolute path before writing to config.json or installed.json. The path-expansion mechanism is host-runtime-specific -- consult adapters/runtime/<your-platform>/install-skill.md for the file-tool that expands `~` correctly on this host. The runtime AI reads the stored value as-is, so storing a literal `~` breaks the runtime config lookup. Strip trailing separators (slash or backslash) before storing. For example: ~/.claude/packages/ai-standup-assistant/"
+
+- Key: `install_dir`
+- Type: string
+- Required: yes
+- Default: `~/.claude/packages/ai-standup-assistant/`
+- Example: `~/.claude/packages/ai-standup-assistant/`
+
+---
+
+### 2. GitHub projects to track
+Ask:
+> "Please list your github projects to track, separated by commas. List of GitHub repos to aggregate activity across. Each entry has owner and repo. The skill queries each in turn for commits, PRs, and issues authored or assigned to author_login. For example: [{"owner": "acme-corp", "repo": "primary-app"}]"
+
+- Key: `projects`
+- Type: list<string>
+- Required: yes
+- Example: `[{"owner": "acme-corp", "repo": "primary-app"}]`
+
+---
+
+### 3. Your GitHub login
+Ask:
+> "What is your Your GitHub login? Your GitHub username. Used to filter commits, PRs, and issues to those involving you. Independent of which account authenticated the GitHub MCP server -- the config is the truth source. For example: octocat"
+
+- Key: `author_login`
+- Type: string
+- Required: yes
+- Example: `octocat`
+
+---
+
+### 4. Standup output format
+Ask:
+> "Which standup output format should be used? How the standup is rendered. concise = three short lines, one per section. detailed = markdown subsections with bullets. narrative = ~80-word first-person paragraph suitable for pasting into Slack/Teams."
+
+- Key: `standup_format`
+- Type: select
+- Required: yes
+- Options:
+  - `concise` — Concise (3-line summary)
+  - `detailed` — Detailed (full sections with bullets) (default)
+  - `narrative` — Narrative (1-paragraph prose)
+
+---
+
+### 5. Blocker detection threshold (days)
+Ask:
+> "What value should blocker detection threshold (days) be set to? An item counts as a blocker if it has been open and unresolved for at least this many days. Lower values surface more items as blockers; higher values are more conservative."
+
+- Key: `blocker_window_days`
+- Type: number
+- Required: yes
+- Default: `3`
+
+---
+
+### 6. Standup history directory (optional)
+Ask:
+> "What is your Standup history directory (optional)? Optional absolute path. If non-empty, each run appends a record to history_dir/standups/YYYY-MM-DD.md for retrospective review. If empty, only the artifact is updated and no filesystem trail is kept. (optional; default: )"
+
+- Key: `history_dir`
+- Type: string
+- Required: no (optional)
+- Default: ``
+- If blank or skipped: store as empty/default, skip related steps during protocol execution.
+
+## Confirmation
+
+Before proceeding to installation, summarize everything and ask the user to confirm:
+
+---
+Here's what I'll configure:
+
+- **Installation directory**: {{config.install_dir}}
+- **GitHub projects to track**: {{config.projects}}
+- **Your GitHub login**: {{config.author_login}}
+- **Standup output format**: {{config.standup_format}}
+- **Blocker detection threshold (days)**: {{config.blocker_window_days}}
+- **Standup history directory (optional)**: {{config.history_dir}}
+
+Shall I proceed with installation?
+---
+
+Wait for explicit confirmation before moving to INSTALL.md.
+
+=== END FILE ===
+
+=== FILE: INSTALL.md ===
+---
+format: a3ip-install
+spec: "1.10"
+package: ai-standup-assistant
+---
+
+# Installation Guide: ai-standup-assistant
+
+## 1. Check for Existing Installation
+
+*Tier: 2 (required outcome -- adapter procedure)*
+
+After this step, the AI MUST know whether a prior installation of this
+package exists on the host, and if so where its `config_dir` lives.
+
+The discovery mechanism is host-runtime-specific -- read
+`adapters/runtime/<platform>/install-skill.md` for how to locate prior
+installs on the current platform. The adapter is responsible for
+whatever lookup is idiomatic on its platform (scanning a conventional
+package home, reading a per-runtime index, following pointer files for
+custom install locations, etc.). This spec does not prescribe a single
+detection path.
+
+**Result:**
+- **Found:** the adapter returns the `config_dir` of the existing install.
+  Read `installed.json` at that path for the installed version, then go
+  directly to the [## Upgrading](#upgrading) section at the end of this
+  document. Apply only the changelog steps for versions after the installed
+  version.
+- **Not found:** proceed with the full install steps below. The configure
+  wizard (Step 4) collects a NEW `install_dir` from the user.
+
+## 2. What This Package Installs
+
+TODO: describe the workflows this package provides.
+
+**"run standup"** — Aggregates the user's last-24h GitHub activity across configured projects, classifies into yesterday/today/blockers, renders per the user's chosen format, and refreshes the Today's Standup artifact card.
+
+## 3. Dependency Check
+
+Verify the following before proceeding. Tell the user exactly what's missing.
+
+**Required MCPs:**
+- [ ] **github MCP** — Queries commits, pull requests, and issues across the configured projects. Specifically: list_commits, list_pull_requests, search_issues..
+  If unavailable: Without GitHub MCP the skill cannot run. Must add the official GitHub MCP server (api.githubcopilot.com/mcp/) via Connectors -- not the built-in 'GitHub Integration' which only handles file attachment.
+
+**Optional MCPs:**
+- [ ] **cowork MCP** — Cowork artifact mechanism for the Today's Standup card (mcp__cowork__create_artifact / update_artifact / list_artifacts)..
+  If unavailable: On non-Cowork runtimes, the artifact degrades to a markdown file fallback (artifact.md) maintained at history_dir or install_dir.
+
+## 4. Run Configuration Wizard
+
+Read and follow CONFIGURE.md to collect all user-specific values.
+Do not proceed until the user has confirmed the configuration summary.
+
+All `{{config.*}}` references in subsequent steps are substituted with
+the values collected here.
+
+## 5. Resolve install_dir to an absolute path
+
+Before writing any file or storing the value, expand `{{config.install_dir}}`
+to a host-native absolute path:
+
+- **Windows hosts:** if the value contains `~`, replace it with the user's
+  Windows home (typically the path under `C:/Users/USERNAME/`). Use the
+  platform's native separator and double backslashes inside JSON files.
+- **POSIX hosts (macOS / Linux):** if the value contains `~`, replace it
+  with `$HOME` or `os.path.expanduser('~')`.
+
+Example expansion: `~/.claude/packages/ai-standup-assistant/` -> the absolute
+path under the user's home directory followed by
+`.claude/packages/ai-standup-assistant/` (or whichever path the runtime adapter
+specifies for this platform).
+
+From this point on, treat `{{config.install_dir}}` as the absolute expanded
+path. Persist the expanded value (not the user-typed literal) when you write
+config.json (Step 6) and installed.json (Step 10). The runtime AI reads these
+files via tools that do not expand `~`, so a literal tilde breaks runtime
+config lookup.
+
+## 6. Make skills discoverable to the host runtime
+*Tier: 2 (required outcome -- adapter procedure)*
+
+After this step, the host runtime MUST be able to load each skill
+in `components/skills/` when its trigger phrases appear. The
+procedure depends on the runtime -- consult
+`adapters/runtime/<your-platform>/install-skill.md` for platform
+conventions and a worked example.
+
+**Platform routing:**
+
+- **Cowork** (Anthropic Cowork - Personal Skills UI registration via .skill zip; first-class artifact registry via mcp__cowork__create_artifact): follow `adapters/runtime/cowork/install-skill.md`.
+- **Codex** (OpenAI Codex - skill files at ~/.codex/skills/<name>/; registration via marker-bounded stanza in ~/.codex/AGENTS.md): follow `adapters/runtime/codex/install-skill.md`.
+- **Claude Code** (Anthropic Claude Code - skill files at ~/.claude/skills/<name>/; auto-discovered on session start, no separate registration step): follow `adapters/runtime/claude-code/install-skill.md`.
+
+If the install AI takes a platform-specific adapter path above, do
+NOT also run the generic file-copy lines below -- doing both may
+produce duplicate registration prompts and a partial install.
+
+**Generic fallback (any platform without an adapter route above):**
+
+Copy `components/skills/standup-assistant/` into the host runtime's skills directory. The exact location is platform-specific -- consult the runtime's documentation.
+
+## 7. Make artifacts available on the host runtime
+*Tier: 2 (required outcome -- adapter procedure)*
+
+After this step, each artifact declared in the package MUST be in a
+form the user can open and the runtime can update. On HTML-capable
+runtimes this typically means an artifact card; on text-only
+runtimes it means the markdown fallback file is in place. Consult
+`adapters/runtime/<your-platform>/install-skill.md` for the
+platform's artifact mechanism.
+
+**Platform routing:**
+
+- **Cowork**: handled by `adapters/runtime/cowork/install-skill.md`. Skip the per-artifact instructions below if the adapter covers this outcome.
+- **Codex**: handled by `adapters/runtime/codex/install-skill.md`. Skip the per-artifact instructions below if the adapter covers this outcome.
+- **Claude Code**: handled by `adapters/runtime/claude-code/install-skill.md`. Skip the per-artifact instructions below if the adapter covers this outcome.
+
+**Per-artifact fallback (any platform without an adapter route above):**
+
+**todays-standup** (`components/artifacts/todays-standup/`)
+
+- **HTML-capable platforms:**
+  Create a new artifact using `artifact.html`. Name it "todays-standup".
+
+- **Text-only platforms:**
+  Use the description in `artifact.md` to maintain an equivalent
+  file-based structure (e.g. a markdown table).
+
+## 8. Make protocols invocable on the host runtime
+*Tier: 2 (required outcome -- adapter procedure)*
+
+After this step, each protocol's trigger phrase MUST be recognized
+by the host runtime. The registration mechanism depends on the
+runtime -- slash commands, remembered instructions, AGENTS.md
+stanzas, or skill-level trigger declarations. Apply registration
+per `adapters/runtime/<your-platform>/install-skill.md`.
+
+**Platform routing:**
+
+- **Cowork**: registration is handled by `adapters/runtime/cowork/install-skill.md`. Skip the manual registration steps below if the adapter covers this outcome.
+- **Codex**: registration is handled by `adapters/runtime/codex/install-skill.md`. Skip the manual registration steps below if the adapter covers this outcome.
+- **Claude Code**: registration is handled by `adapters/runtime/claude-code/install-skill.md`. Skip the manual registration steps below if the adapter covers this outcome.
+
+**Manual registration fallback (any platform without an adapter route above):**
+
+Read each protocol file and register it:
+
+**`run-standup.md`**
+- Trigger: "run standup"
+- Alias: "compile standup"
+- Alias: "today's standup"
+- Alias: "standup time"
+- Alias: "what's my standup"
+- Register as a slash command, skill, or remembered instruction.
+
+## 9. Confirm Installation
+
+Summarize to the user:
+
+- ✅ Skill(s) installed
+- ✅ Artifact(s) set up
+- ✅ Protocol registered: "run standup"
+- Any missing dependencies and their impact on the workflow
+
+**How to use:**
+- Say **"run standup"** to trigger the run-standup workflow.
+
+## 10. Write installed.json
+
+Write `{{config.install_dir}}/installed.json` with:
+
+```json
+{
+  "package": "ai-standup-assistant",
+  "version": "1.0.0",
+  "installed_at": "<current ISO-8601 timestamp>",
+  "platform": "<detected platform id — e.g. cowork, codex, claude-code, cursor>",
+  "a3ip_spec": "1.10",
+  "config_dir": "{{config.install_dir}}"
+}
+```
+
+This is the canonical install record. The next install/upgrade of this
+package looks for this file at `{{config.install_dir}}/installed.json` —
+if present, it runs the Upgrading flow instead of a fresh install.
+
+
+---
+
+## Platform-Specific Notes
+
+### Cowork
+Anthropic Cowork - Personal Skills UI registration via .skill zip; first-class artifact registry via mcp__cowork__create_artifact.
+See `adapters/runtime/cowork/install-skill.md` for registration mechanics, artifact handling, and any platform-specific quirks.
+
+### Codex
+OpenAI Codex - skill files at ~/.codex/skills/<name>/; registration via marker-bounded stanza in ~/.codex/AGENTS.md.
+See `adapters/runtime/codex/install-skill.md` for registration mechanics, artifact handling, and any platform-specific quirks.
+
+### Claude Code
+Anthropic Claude Code - skill files at ~/.claude/skills/<name>/; auto-discovered on session start, no separate registration step.
+See `adapters/runtime/claude-code/install-skill.md` for registration mechanics, artifact handling, and any platform-specific quirks.
+
+### Other platforms
+Core protocols and components are platform-neutral; adapt as needed.
+
+---
+
+## Upgrading
+
+When `installed.json` is found at `{{config.install_dir}}/installed.json`,
+follow these steps instead of the full install.
+
+### Step U1 — Read installed version
+Read `{{config.install_dir}}/installed.json`. Note the `version` field.
+
+### Step U2 — Apply CHANGELOG steps
+Find all version entries in `CHANGELOG.md` newer than the installed version.
+Apply them in order from oldest to newest. For each version entry:
+1. Check `### Breaking changes` — if any, tell the user before proceeding.
+2. Check `### Config changes` — if new required keys, run the config wizard
+   for those keys only.
+3. Follow `### Upgrade steps` exactly.
+
+### Step U3 — Update installed.json
+After all upgrade steps complete, overwrite `{{config.install_dir}}/installed.json`
+with the new `version` and `installed_at` timestamp. Preserve the existing
+`platform`, `a3ip_spec`, and `config_dir` fields.
+
+### Step U4 — Confirm
+Tell the user the versions upgraded from and to, and the changes applied.
+
+Do **not** run the full install sequence during an upgrade.
+Apply only the delta steps listed in CHANGELOG.md.
+
+## Uninstalling
+
+Triggered when the user says "uninstall ai-standup-assistant", "remove ai-standup-assistant",
+or equivalent. Uninstall is idempotent -- running it when the package is
+not installed is a no-op (Step UN1 exits cleanly), not an error.
+
+### Step UN1 -- Locate the existing install
+*Tier: 2 (required outcome -- adapter procedure)*
+
+After this step, the AI MUST know whether this package is installed on
+the host, and if so where its `config_dir` lives. The discovery mechanism
+is host-runtime-specific -- read `adapters/runtime/<platform>/uninstall-skill.md`
+for how to locate prior installs on the current platform. This is the
+symmetric counterpart of INSTALL.md Step 1.
+
+- **Not found:** tell the user there is nothing to uninstall and exit
+  cleanly. Steps UN2 onward are skipped.
+- **Found:** read the `version`, `platform`, `config_dir`, and `install_method`
+  fields from `installed.json`. They drive every subsequent step.
+
+### Step UN2 -- Show the Uninstall Plan and resolve per-key config policy
+*Tier: 1 (mechanical)*
+
+Present an Uninstall Plan that lists, item by item:
+
+- The skill files that will be removed (paths derived per the platform's adapter).
+- The artifacts that will be removed (artifact names and their host-runtime mechanism).
+- Any host-runtime registrations that will be reverted (e.g. on Codex: the
+  `<!-- a3ip:ai-standup-assistant:start --> ... <!-- a3ip:ai-standup-assistant:end -->`
+  block in `~/.codex/AGENTS.md`).
+- The per-key disposition of every configuration value (see below).
+- The `installed.json` file that will be removed.
+
+**Resolving the config-key policy.** Walk every entry in the `configuration:`
+block of `manifest.yaml` and consult its `preserve_on_uninstall:` field:
+
+- `true` -- silently classified as *preserve*. The user is NOT asked.
+- `false` -- silently classified as *purge*. The user is NOT asked.
+- `ask` (or field omitted) -- the AI MUST ask the user, per key, whether to
+  preserve or remove that value.
+
+End with **Confirm to proceed.** If the user declines, abort -- nothing is removed.
+
+### Step UN3 -- Make skills un-discoverable to the host runtime
+*Tier: 2 (required outcome -- adapter procedure)*
+
+After this step, the host runtime MUST NOT load any skill from
+`components/skills/` in response to its trigger phrases. The procedure
+depends on how skills were made discoverable in install Step 5 -- read
+`adapters/runtime/<platform>/uninstall-skill.md` for the platform-specific
+procedure.
+
+### Step UN4 -- Remove artifacts from the host runtime
+*Tier: 2 (required outcome -- adapter procedure)*
+
+After this step, the host runtime MUST NOT surface any artifact this
+package created in install Step 6.
+
+### Step UN5 -- Make protocols no longer invocable
+*Tier: 2 (required outcome -- adapter procedure)*
+
+After this step, the host runtime MUST NOT recognize this package's
+protocol trigger phrases.
+
+### Step UN6 -- Remove install_dir contents
+*Tier: 1 (mechanical)*
+
+Apply the per-key decisions resolved in Step UN2:
+
+1. Read the current `{{config.install_dir}}/config.json`.
+2. Construct a new version containing ONLY the keys whose disposition is *preserve*.
+3. Write the trimmed object back, OR remove the file if no keys survive.
+4. For each *purge* key whose `storage:` is non-config-file (e.g. `keychain`),
+   remove it from that storage too (read the uninstall adapter for the
+   platform's keychain/credential-removal mechanism).
+5. Delete every other file and subdirectory in `{{config.install_dir}}`
+   EXCEPT `config.json` (if preserved) and `installed.json`.
+
+### Step UN7 -- Remove installed.json
+*Tier: 1 (mechanical)*
+
+Remove `{{config.install_dir}}/installed.json`. If the install directory
+is empty after this, the AI SHOULD remove the empty directory too.
+
+### Step UN8 -- Confirm to the user
+*Tier: 1 (mechanical)*
+
+Tell the user the uninstall completed. Name the version that was
+uninstalled, which configuration keys were preserved (with their locations),
+which were purged, and any leftover state the user may want to know about.
+
+=== END FILE ===
+
+=== FILE: intake.json ===
+{
+  "name": "ai-standup-assistant",
+  "version": "1.0.0",
+  "description": "Generates a structured daily standup by aggregating activity across configured GitHub repos. Reports yesterday's commits and merged PRs, today's work in progress (open PRs, in-flight issues), and blockers (PRs awaiting review, issues stalled beyond a threshold). Renders the result to the 'Today's Standup' Cowork artifact card.",
+  "author": "Maksym Prydorozhko <maksym.prydorozhko@gmail.com>",
+  "license": "Apache-2.0",
+  "platforms": ["cowork", "codex", "claude-code"],
+
+  "protocols": [
+    {
+      "name": "run-standup",
+      "trigger": "run standup",
+      "aliases": ["compile standup", "today's standup", "standup time", "what's my standup"],
+      "description": "Aggregates the user's last-24h GitHub activity across configured projects, classifies into yesterday/today/blockers, renders per the user's chosen format, and refreshes the Today's Standup artifact card.",
+      "steps": [
+        "Load config.json from {{install_dir}}/config.json (path-separator normalize before composing). Validate that projects is non-empty and author_login is set; if missing, tell the user the config is incomplete and stop.",
+        "Compute the date window: default last 24 hours. Accept natural-language overrides from the trigger phrase ('for the last 3 days', 'for the last 30 days', 'since Friday') and adjust the window accordingly.",
+        "For each project in config.projects: call the GitHub MCP to list_commits authored by config.author_login since window_start; list_pull_requests filtered to PRs the user opened or is requested-reviewer on; search_issues for issues assigned to the user with state:open.",
+        "Classify aggregated items into Yesterday (commits + merged/closed PRs + closed issues in window), Today (open PRs user owns + open assigned issues with window activity), Blockers (PRs awaiting user's review for > config.blocker_window_days; issues with no commit/PR activity in window).",
+        "Render per config.standup_format: concise (3 short lines), detailed (markdown subsections with bullets, repo name in parens when projects > 1), narrative (~80-word first-person paragraph for Slack-pasting).",
+        "Refresh the Today's Standup artifact: call mcp__cowork__list_artifacts to find 'todays-standup'; if present call update_artifact with new HTML; if absent call create_artifact with the artifact.html template, substituting the YESTERDAY / TODAY / BLOCKERS / COMPILED-AT / SOURCES markers.",
+        "If config.history_dir is non-empty: append a markdown record to {{history_dir}}/standups/YYYY-MM-DD.md (create the standups/ subdir if needed). Overwrite same-day re-runs. Warn-but-don't-fail on write errors -- the artifact is the primary deliverable.",
+        "Confirm to the user. If any project query failed (rate-limited, repo not accessible), name which ones and what was lost. If history was written, name the file path."
+      ]
+    }
+  ],
+
+  "skills": [
+    {
+      "name": "standup-assistant",
+      "description": "Guides the AI through compiling a daily standup from GitHub activity across configured projects: queries commits/PRs/issues, classifies into yesterday/today/blockers, renders to a Cowork artifact card."
+    }
+  ],
+
+  "artifacts": [
+    {
+      "name": "todays-standup",
+      "description": "Three-section card (Yesterday, Today, Blockers) showing the latest compiled standup. Refreshed each time the run-standup protocol runs. Uses inline CSS only (Cowork artifact runtime does not load Tailwind from CDN)."
+    }
+  ],
+
+  "prompts": [],
+  "scripts": [],
+
+  "configuration": [
+    {
+      "key": "projects",
+      "label": "GitHub projects to track",
+      "description": "List of GitHub repos to aggregate activity across. Each entry has owner and repo. The skill queries each in turn for commits, PRs, and issues authored or assigned to author_login.",
+      "type": "list<string>",
+      "required": true,
+      "placeholder": "[{\"owner\": \"acme-corp\", \"repo\": \"primary-app\"}]",
+      "when": "before",
+      "preserve_on_uninstall": "ask"
+    },
+    {
+      "key": "author_login",
+      "label": "Your GitHub login",
+      "description": "Your GitHub username. Used to filter commits, PRs, and issues to those involving you. Independent of which account authenticated the GitHub MCP server -- the config is the truth source.",
+      "type": "string",
+      "required": true,
+      "placeholder": "octocat",
+      "when": "before",
+      "preserve_on_uninstall": "ask"
+    },
+    {
+      "key": "standup_format",
+      "label": "Standup output format",
+      "description": "How the standup is rendered. concise = three short lines, one per section. detailed = markdown subsections with bullets. narrative = ~80-word first-person paragraph suitable for pasting into Slack/Teams.",
+      "type": "select",
+      "required": true,
+      "when": "before",
+      "options": [
+        {"value": "concise", "label": "Concise (3-line summary)"},
+        {"value": "detailed", "label": "Detailed (full sections with bullets)", "default": true},
+        {"value": "narrative", "label": "Narrative (1-paragraph prose)"}
+      ],
+      "preserve_on_uninstall": "ask"
+    },
+    {
+      "key": "blocker_window_days",
+      "label": "Blocker detection threshold (days)",
+      "description": "An item counts as a blocker if it has been open and unresolved for at least this many days. Lower values surface more items as blockers; higher values are more conservative.",
+      "type": "number",
+      "required": true,
+      "default": 3,
+      "when": "before",
+      "preserve_on_uninstall": "ask"
+    },
+    {
+      "key": "history_dir",
+      "label": "Standup history directory (optional)",
+      "description": "Optional absolute path. If non-empty, each run appends a record to history_dir/standups/YYYY-MM-DD.md for retrospective review. If empty, only the artifact is updated and no filesystem trail is kept.",
+      "type": "string",
+      "required": false,
+      "default": "",
+      "when": "before",
+      "preserve_on_uninstall": "ask"
+    }
+  ],
+
+  "dependencies": {
+    "mcp": [
+      {
+        "name": "github",
+        "required": true,
+        "purpose": "Queries commits, pull requests, and issues across the configured projects. Specifically: list_commits, list_pull_requests, search_issues.",
+        "registry": "https://api.githubcopilot.com/mcp/",
+        "fallback": "Without GitHub MCP the skill cannot run. Must add the official GitHub MCP server (api.githubcopilot.com/mcp/) via Connectors -- not the built-in 'GitHub Integration' which only handles file attachment."
+      },
+      {
+        "name": "cowork",
+        "required": false,
+        "purpose": "Cowork artifact mechanism for the Today's Standup card (mcp__cowork__create_artifact / update_artifact / list_artifacts).",
+        "fallback": "On non-Cowork runtimes, the artifact degrades to a markdown file fallback (artifact.md) maintained at history_dir or install_dir."
+      }
+    ],
+    "tools": []
+  },
+
+  "auth_flows": []
+}
+
+=== END FILE ===
+
+=== FILE: manifest.yaml ===
+# ─────────────────────────────────────────
+# A3IP Manifest
+# Generated by A3IP Creator on 2026-06-22
+# ─────────────────────────────────────────
+
+a3ip: "1.10"
+min_a3ip_spec: "1.10"
+latest_change: 2026-06-22
+name: "ai-standup-assistant"
+version: "1.0.0"
+description: >
+  Generates a structured daily standup by aggregating activity across configured GitHub repos. Reports yesterday's commits and merged PRs, today's work in progress (open PRs, in-flight issues), and blockers (PRs awaiting review, issues stalled beyond a threshold). Renders the result to the 'Today's Standup' Cowork artifact card.
+author: "Maksym Prydorozhko <maksym.prydorozhko@gmail.com>"
+license: "Apache-2.0"
+
+# ─────────────────────────────────────────
+# Components
+# ─────────────────────────────────────────
+
+components:
+  skills:
+    - path: components/skills/standup-assistant
+      description: "Guides the AI through compiling a daily standup from GitHub activity across configured projects: queries commits/PRs/issues, classifies into yesterday/today/blockers, renders to a Cowork artifact card."
+
+  artifacts:
+    - path: components/artifacts/todays-standup
+      description: "Three-section card (Yesterday, Today, Blockers) showing the latest compiled standup. Refreshed each time the run-standup protocol runs. Uses inline CSS only (Cowork artifact runtime does not load Tailwind from CDN)."
+
+  protocols:
+    - path: components/protocols/run-standup.md
+      description: "Aggregates the user's last-24h GitHub activity across configured projects, classifies into yesterday/today/blockers, renders per the user's chosen format, and refreshes the Today's Standup artifact card."
+
+  prompts: []
+
+  scripts: []
+
+# ─────────────────────────────────────────
+# External dependencies
+# ─────────────────────────────────────────
+
+dependencies:
+  mcp:
+    - name: github
+      required: true
+      purpose: "Queries commits, pull requests, and issues across the configured projects. Specifically: list_commits, list_pull_requests, search_issues."
+      registry: "https://api.githubcopilot.com/mcp/"
+      fallback: "Without GitHub MCP the skill cannot run. Must add the official GitHub MCP server (api.githubcopilot.com/mcp/) via Connectors -- not the built-in 'GitHub Integration' which only handles file attachment."
+    - name: cowork
+      required: false
+      purpose: "Cowork artifact mechanism for the Today's Standup card (mcp__cowork__create_artifact / update_artifact / list_artifacts)."
+      fallback: "On non-Cowork runtimes, the artifact degrades to a markdown file fallback (artifact.md) maintained at history_dir or install_dir."
+
+  tools: []
+
+# ─────────────────────────────────────────
+# Configuration schema
+# Values collected during installation wizard.
+# Referenced as {{config.<key>}} in protocols, prompts, and scripts.
+# ─────────────────────────────────────────
+
+configuration:
+  - key: install_dir
+    label: "Installation directory"
+    description: "Directory where ai-standup-assistant's config.json, installed.json, and scripts will be stored. Default depends on the target platform:
+  - Claude Code: ~/.claude/packages/ai-standup-assistant/
+  - Codex: ~/.codex/packages/ai-standup-assistant/
+  - Cowork: ~/.claude/packages/ai-standup-assistant/. IMPORTANT for the install AI: expand the user-typed value to an absolute path before writing to config.json or installed.json. The path-expansion mechanism is host-runtime-specific -- consult adapters/runtime/<your-platform>/install-skill.md for the file-tool that expands `~` correctly on this host. The runtime AI reads the stored value as-is, so storing a literal `~` breaks the runtime config lookup. Strip trailing separators (slash or backslash) before storing."
+    type: string
+    required: true
+    default: "~/.claude/packages/ai-standup-assistant/"
+    placeholder: "~/.claude/packages/ai-standup-assistant/"
+    when: before
+    preserve_on_uninstall: false
+
+  - key: projects
+    label: "GitHub projects to track"
+    description: "List of GitHub repos to aggregate activity across. Each entry has owner and repo. The skill queries each in turn for commits, PRs, and issues authored or assigned to author_login."
+    type: list<string>
+    required: true
+    placeholder: '[{"owner": "acme-corp", "repo": "primary-app"}]'
+    when: before
+    preserve_on_uninstall: "ask"
+
+  - key: author_login
+    label: "Your GitHub login"
+    description: "Your GitHub username. Used to filter commits, PRs, and issues to those involving you. Independent of which account authenticated the GitHub MCP server -- the config is the truth source."
+    type: string
+    required: true
+    placeholder: "octocat"
+    when: before
+    preserve_on_uninstall: "ask"
+
+  - key: standup_format
+    label: "Standup output format"
+    description: "How the standup is rendered. concise = three short lines, one per section. detailed = markdown subsections with bullets. narrative = ~80-word first-person paragraph suitable for pasting into Slack/Teams."
+    type: select
+    required: true
+    when: before
+    preserve_on_uninstall: "ask"
+    options:
+      - value: concise
+        label: "Concise (3-line summary)"
+      - value: detailed
+        label: "Detailed (full sections with bullets)"
+        default: true
+      - value: narrative
+        label: "Narrative (1-paragraph prose)"
+
+  - key: blocker_window_days
+    label: "Blocker detection threshold (days)"
+    description: "An item counts as a blocker if it has been open and unresolved for at least this many days. Lower values surface more items as blockers; higher values are more conservative."
+    type: number
+    required: true
+    default: 3
+    when: before
+    preserve_on_uninstall: "ask"
+
+  - key: history_dir
+    label: "Standup history directory (optional)"
+    description: "Optional absolute path. If non-empty, each run appends a record to history_dir/standups/YYYY-MM-DD.md for retrospective review. If empty, only the artifact is updated and no filesystem trail is kept."
+    type: string
+    required: false
+    default: ""
+    when: before
+    preserve_on_uninstall: "ask"
+
+
+# ─────────────────────────────────────────
+# Platform compatibility
+# ─────────────────────────────────────────
+
+platforms:
+  tested:
+    - cowork
+    - codex
+    - claude-code
+
+=== END FILE ===
+
+=== FILE: README.md ===
+# ai-standup-assistant
+
+Generates a structured daily standup by aggregating activity across configured GitHub repos. Reports yesterday's commits and merged PRs, today's work in progress (open PRs, in-flight issues), and blockers (PRs awaiting review, issues stalled beyond a threshold). Renders the result to the 'Today's Standup' Cowork artifact card.
+
+## Workflows
+
+- **"run standup"** — Aggregates the user's last-24h GitHub activity across configured projects, classifies into yesterday/today/blockers, renders per the user's chosen format, and refreshes the Today's Standup artifact card.
+
+## Installation
+
+This is an A3IP package. To install it, give the `.a3ip.bundle` file to
+your AI assistant and ask it to install the package.
+
+The AI will guide you through the configuration wizard and set everything up.
+
+## Platforms
+
+- cowork
+- codex
+- claude-code
+
+## Author
+
+Maksym Prydorozhko <maksym.prydorozhko@gmail.com>
+
+=== END FILE ===

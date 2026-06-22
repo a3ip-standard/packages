@@ -34,7 +34,7 @@
 # ─────────────────────────────────────────
 
 registry_version: "1.0"
-updated: "2026-06-10"
+updated: "2026-06-22"
 
 packages:
   - name: a3ip-creator
@@ -113,3 +113,28 @@ packages:
         bundle_path: "ai-research-workspace/ai-research-workspace-v1.1.0.a3ip.bundle"
         a3ip_spec: "1.10"
         released: "2026-06-10"
+
+  - name: ai-standup-assistant
+    description: >
+      Generates a structured daily standup by aggregating activity across
+      configured GitHub repos. Reports yesterday's commits and merged PRs,
+      today's work in progress (open PRs, in-flight issues), and blockers
+      (PRs awaiting review, issues stalled beyond a threshold). Renders the
+      result to the 'Today's Standup' Cowork artifact card; degrades to a
+      markdown fallback on Codex and Claude Code. Requires the official
+      GitHub MCP server at api.githubcopilot.com/mcp/.
+    author: "Maksym Prydorozhko <maksym.prydorozhko@gmail.com>"
+    license: "Apache-2.0"
+    repository: "https://github.com/a3ip-standard/packages"
+    latest_version: "1.0.0"
+    min_a3ip_spec: "1.10"
+    platforms:
+      - cowork
+      - codex
+      - claude-code
+    bundle_url: "https://github.com/a3ip-standard/packages/raw/main/ai-standup-assistant/ai-standup-assistant-v1.0.0.a3ip.bundle"
+    versions:
+      - version: "1.0.0"
+        bundle_path: "ai-standup-assistant/ai-standup-assistant-v1.0.0.a3ip.bundle"
+        a3ip_spec: "1.10"
+        released: "2026-06-22"
