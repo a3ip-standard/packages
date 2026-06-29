@@ -60,10 +60,6 @@ packages:
         bundle_path: "a3ip-creator/a3ip-creator-v3.0.1.a3ip.bundle"
         a3ip_spec: "1.10"
         released: "2026-06-24"
-      - version: "3.0.0"
-        bundle_path: "a3ip-creator/a3ip-creator-v3.0.0.a3ip.bundle"
-        a3ip_spec: "1.10"
-        released: "2026-06-06"
 
   - name: ai-code-review-flow
     description: >
@@ -85,10 +81,6 @@ packages:
       - cursor
     bundle_url: "https://github.com/a3ip-standard/packages/raw/main/ai-code-review-flow/ai-code-review-flow-v1.5.0.a3ip.bundle"
     versions:
-      - version: "1.4.1"
-        bundle_path: "ai-code-review-flow/ai-code-review-flow-v1.4.1.a3ip.bundle"
-        a3ip_spec: "1.10"
-        released: "2026-06-06"
       - version: "1.5.0"
         bundle_path: "ai-code-review-flow/ai-code-review-flow-v1.5.0.a3ip.bundle"
         a3ip_spec: "1.10"
