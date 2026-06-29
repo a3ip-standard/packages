@@ -1,0 +1,3460 @@
+---
+a3ip-bundle: "1.1"
+package: cowork-backlog
+version: "1.0.0"
+generated: 2026-06-29T10:03:37Z
+files: 21
+spec_url: https://raw.githubusercontent.com/a3ip-standard/spec/main/docs/A3IP-SPEC-v1.10.md
+---
+
+# ================================================================
+# A3IP BUNDLE -- INSTALL KNOWLEDGE INSIDE
+# ================================================================
+#
+# This file is an A3IP installer bundle. Two pieces of installation
+# knowledge live inside it:
+#
+#   * INSTALL.md -- the install procedure OUTLINE. Defines the numbered
+#     Steps (typically 1 through ~11) and marks which Tier each step is.
+#     Tier 2 steps state OUTCOMES the AI must reach; Tier 1 steps are
+#     mechanical. Locate "=== FILE: INSTALL.md ===" in this bundle.
+#
+#   * adapters/runtime/<platform>/install-skill.md -- platform-specific
+#     KNOWLEDGE for satisfying the Tier 2 outcomes on your runtime
+#     (Cowork / Codex / Claude Code / Cursor / other). Describes
+#     conventions, not commandments. Locate "=== FILE: adapters/runtime/
+#     <your-platform>/install-skill.md ===".
+#
+# Before doing any install work, READ both artifacts. They are the
+# authoritative source of install knowledge for this package on your
+# platform. You are NOT expected to execute them as verbatim scripts --
+# you are expected to reason about them and apply your judgment to the
+# install in front of you.
+#
+# The failure mode to avoid: starting the install without consulting
+# these artifacts. The "=== FILE: ===" markers describe what's in
+# the bundle, not where each file goes at runtime. Improvising the
+# install layout from raw file structure -- without first reading
+# INSTALL.md's Steps and the adapter's conventions -- breaks the
+# install contract.
+#
+# Note on tooling: the `a3ip` CLI builds bundles; it does NOT install
+# them. Install is performed by the installing AI consulting INSTALL.md
+# plus the runtime adapter, then applying that knowledge to the
+# specific install in front of it.
+#
+# IF YOU ARE NOT FAMILIAR WITH A3IP: fetch the spec from:
+#   https://raw.githubusercontent.com/a3ip-standard/spec/main/docs/A3IP-SPEC-v1.10.md
+# Read it, then return here and follow INSTALL.md to install this package.
+#
+# If you cannot locate INSTALL.md or the runtime adapter for your
+# platform inside this bundle, stop and report. The bundle may be
+# malformed, or your platform may not be supported by this package.
+#
+# A3IP spec: https://raw.githubusercontent.com/a3ip-standard/spec/main/docs/A3IP-SPEC-v1.10.md
+# ================================================================
+
+=== FILE: CHANGELOG.md ===
+---
+format: a3ip-changelog
+spec: "1.1"
+package: cowork-backlog
+---
+
+# Changelog: cowork-backlog
+
+This file documents changes between versions of this package.
+Each version section contains:
+- A human-readable **Summary** of what changed
+- **Upgrade steps** — AI-readable instructions for applying this version's changes
+  (written exactly like INSTALL.md steps; apply only what changed)
+- **Breaking changes** — config keys renamed/removed, new required MCPs, etc.
+  (an AI receiving an upgrade must re-run the wizard for any affected fields)
+
+New version entries go at the **top** of this file (newest first).
+
+---
+
+## 1.0.0
+
+*Released: 2026-06-29*
+
+### Summary
+
+Initial release.
+
+### Upgrade steps
+
+*(No prior version — this is the initial release. Run the full INSTALL.md.)*
+
+### Breaking changes
+
+None (initial release).
+
+=== END FILE ===
+
+=== FILE: CONFIGURE.md ===
+---
+format: a3ip-configure
+spec: "1.10"
+package: cowork-backlog
+---
+
+# Configuration Wizard: cowork-backlog
+
+You are setting up this workflow. Ask the questions below in order.
+Be conversational — no need to present them as a rigid form.
+Collect all required values before moving to installation.
+
+## Before Installation — ask these first
+
+---
+
+### 1. Installation directory
+Ask:
+> "What is your Installation directory? Absolute path where the package stores its engine script, skill, and installed.json. For example: e.g. C:\Users\you\.claude\packages\cowork-backlog"
+
+- Key: `install_dir`
+- Type: string
+- Required: yes
+- Example: `e.g. C:\Users\you\.claude\packages\cowork-backlog`
+
+---
+
+### 2. Shared board hub directory
+Ask:
+> "What is your Shared board hub directory? Absolute path to the shared hub folder that hosts the cross-project board registry (projects.json) and the combined board.html. Optional — if omitted, each project's board stays self-contained in its own folder. Maps to the COWORK_BACKLOG_HUB environment variable. (optional — leave blank to skip) For example: e.g. C:\Users\you\OneDrive\Claude\Backlog Hub"
+
+- Key: `hub_dir`
+- Type: string
+- Required: no (optional)
+- Example: `e.g. C:\Users\you\OneDrive\Claude\Backlog Hub`
+- If blank or skipped: store as empty/default, skip related steps during protocol execution.
+
+## Confirmation
+
+Before proceeding to installation, summarize everything and ask the user to confirm:
+
+---
+Here's what I'll configure:
+
+- **Installation directory**: {{config.install_dir}}
+- **Shared board hub directory**: {{config.hub_dir}}
+
+Shall I proceed with installation?
+---
+
+Wait for explicit confirmation before moving to INSTALL.md.
+
+=== END FILE ===
+
+=== FILE: INSTALL.md ===
+---
+format: a3ip-install
+spec: "1.10"
+package: cowork-backlog
+---
+
+# Installation Guide: cowork-backlog
+
+## Plan
+
+Everything cowork-backlog will do on your machine — review and confirm before proceeding.
+
+- **Files written:** creates `{{config.install_dir}}/` and copies the engine script, skill, and artifact into it, then writes `installed.json` there. During use, the engine writes each tracked project's `.backlog/` markdown files (backlog.yaml, iterations, stories, notes) and regenerates that project's `board.json` + `board.html`. If a hub is configured, it also writes the shared `projects.json` registry and the combined `board.html`.
+- **Network domains contacted:** none for the workflow itself. On first run the engine may invoke `pip` to install PyYAML if it is missing.
+- **MCP tools used:** filesystem (optional) — lets the shared board artifact read each project's `board.json` by path.
+- **Shell commands run:** `python3` to run the engine; `pip` only to install PyYAML if it is absent.
+
+No credentials, tokens, or external API calls are involved.
+
+## 1. Check for Existing Installation
+
+*Tier: 2 (required outcome -- adapter procedure)*
+
+After this step, the AI MUST know whether a prior installation of this
+package exists on the host, and if so where its `config_dir` lives.
+
+The discovery mechanism is host-runtime-specific -- read
+`adapters/runtime/<platform>/install-skill.md` for how to locate prior
+installs on the current platform. The adapter is responsible for
+whatever lookup is idiomatic on its platform (scanning a conventional
+package home, reading a per-runtime index, following pointer files for
+custom install locations, etc.). This spec does not prescribe a single
+detection path.
+
+**Result:**
+- **Found:** the adapter returns the `config_dir` of the existing install.
+  Read `installed.json` at that path for the installed version, then go
+  directly to the [## Upgrading](#upgrading) section at the end of this
+  document. Apply only the changelog steps for versions after the installed
+  version.
+- **Not found:** proceed with the full install steps below. The configure
+  wizard (Step 4) collects a NEW `install_dir` from the user.
+
+## 2. What This Package Installs
+
+cowork-backlog adds a lightweight, file-based execution tracker for your projects. It installs a deterministic backlog engine, a skill that teaches the AI how to drive it, a read-only Kanban board artifact, and four protocols:
+
+**"set up a backlog"** — Scaffold a project's .backlog/ folder, create its first iteration, and register it on the shared board.
+**"add a story"** — Add stories and tasks, and advance their status across the board columns (planned → in_progress → test → completed).
+**"log a decision"** — Record durable project knowledge as a note (decision, discovery, risk, or gotcha), distinct from actionable work or CLAUDE.md directives.
+**"show the board"** — Surface the read-only Kanban board for the tracked project(s).
+
+## 3. Dependency Check
+
+Verify the following before proceeding. Tell the user exactly what's missing.
+
+**Optional MCPs:**
+- [ ] **filesystem MCP** — Lets the shared board artifact read each registered project's board.json by absolute path for the multi-project view..
+  If unavailable: Without it, use each project's self-contained local board.html instead of the shared cross-project artifact.
+
+**Required tools:**
+- [ ] **python >=3.9** — Runs the cross-platform backlog engine (auto-installs PyYAML on first run)..
+
+## 4. Run Configuration Wizard
+
+Read and follow CONFIGURE.md to collect all user-specific values.
+Do not proceed until the user has confirmed the configuration summary.
+
+All `{{config.*}}` references in subsequent steps are substituted with
+the values collected here.
+
+## 5. Resolve install_dir to an absolute path
+
+Before writing any file or storing the value, expand `{{config.install_dir}}`
+to a host-native absolute path:
+
+- **Windows hosts:** if the value contains `~`, replace it with the user's
+  Windows home (typically the path under `C:/Users/USERNAME/`). Use the
+  platform's native separator and double backslashes inside JSON files.
+- **POSIX hosts (macOS / Linux):** if the value contains `~`, replace it
+  with `$HOME` or `os.path.expanduser('~')`.
+
+Example expansion: `~/.claude/packages/cowork-backlog/` -> the absolute
+path under the user's home directory followed by
+`.claude/packages/cowork-backlog/` (or whichever path the runtime adapter
+specifies for this platform).
+
+From this point on, treat `{{config.install_dir}}` as the absolute expanded
+path. Persist the expanded value (not the user-typed literal) when you write
+config.json (Step 6) and installed.json (Step 10). The runtime AI reads these
+files via tools that do not expand `~`, so a literal tilde breaks runtime
+config lookup.
+
+## 6. Install Scripts
+
+Create `{{config.install_dir}}` if it does not exist.
+Copy script files from `scripts/` in this bundle to
+`{{config.install_dir}}/scripts/`.
+
+- **`backlog`** — Deterministic CLI engine that owns every change to the backlog: id assignment, frontmatter read/write, derived story assignees, status validation, and board generation. Writes the project's .backlog/ markdown files and regenerates board.json + board.html atomically.
+
+## 7. Make skills discoverable to the host runtime
+*Tier: 2 (required outcome -- adapter procedure)*
+
+After this step, the host runtime MUST be able to load each skill
+in `components/skills/` when its trigger phrases appear. The
+procedure depends on the runtime -- consult
+`adapters/runtime/<your-platform>/install-skill.md` for platform
+conventions and a worked example.
+
+**Platform routing:**
+
+- **Cowork** (Anthropic Cowork - Personal Skills UI registration via .skill zip; first-class artifact registry via mcp__cowork__create_artifact): follow `adapters/runtime/cowork/install-skill.md`.
+- **Claude Code** (Anthropic Claude Code - skill files at ~/.claude/skills/<name>/; auto-discovered on session start, no separate registration step): follow `adapters/runtime/claude-code/install-skill.md`.
+
+If the install AI takes a platform-specific adapter path above, do
+NOT also run the generic file-copy lines below -- doing both may
+produce duplicate registration prompts and a partial install.
+
+**Generic fallback (any platform without an adapter route above):**
+
+The skill at `components/skills/cowork-backlog/` must end up in the host runtime's skills directory. The exact location is platform-specific -- consult the runtime's documentation.
+
+## 8. Make artifacts available on the host runtime
+*Tier: 2 (required outcome -- adapter procedure)*
+
+After this step, each artifact declared in the package MUST be in a
+form the user can open and the runtime can update. On HTML-capable
+runtimes this typically means an artifact card; on text-only
+runtimes it means the markdown fallback file is in place. Consult
+`adapters/runtime/<your-platform>/install-skill.md` for the
+platform's artifact mechanism.
+
+**Platform routing:**
+
+- **Cowork**: handled by `adapters/runtime/cowork/install-skill.md`. Skip the per-artifact instructions below if the adapter covers this outcome.
+- **Claude Code**: handled by `adapters/runtime/claude-code/install-skill.md`. Skip the per-artifact instructions below if the adapter covers this outcome.
+
+**Per-artifact fallback (any platform without an adapter route above):**
+
+**backlog-board** (`components/artifacts/backlog-board/`)
+
+- **HTML-capable platforms:**
+  Create a new artifact using `artifact.html`. Name it "backlog-board".
+
+- **Text-only platforms:**
+  Use the description in `artifact.md` to maintain an equivalent
+  file-based structure (e.g. a markdown table).
+
+## 9. Make protocols invocable on the host runtime
+*Tier: 2 (required outcome -- adapter procedure)*
+
+After this step, each protocol's trigger phrase MUST be recognized
+by the host runtime. The registration mechanism depends on the
+runtime -- slash commands, remembered instructions, AGENTS.md
+stanzas, or skill-level trigger declarations. Apply registration
+per `adapters/runtime/<your-platform>/install-skill.md`.
+
+**Platform routing:**
+
+- **Cowork**: registration is handled by `adapters/runtime/cowork/install-skill.md`. Skip the manual registration steps below if the adapter covers this outcome.
+- **Claude Code**: registration is handled by `adapters/runtime/claude-code/install-skill.md`. Skip the manual registration steps below if the adapter covers this outcome.
+
+**Manual registration fallback (any platform without an adapter route above):**
+
+Read each protocol file and register it:
+
+**`init-backlog.md`**
+- Trigger: "set up a backlog"
+- Alias: "track this project"
+- Alias: "create a backlog"
+- Alias: "start tracking this project"
+- Register as a slash command, skill, or remembered instruction.
+
+**`track-work.md`**
+- Trigger: "add a story"
+- Alias: "add a task"
+- Alias: "move that to test"
+- Alias: "what's the status"
+- Alias: "what's next"
+- Register as a slash command, skill, or remembered instruction.
+
+**`capture-knowledge.md`**
+- Trigger: "log a decision"
+- Alias: "note this"
+- Alias: "record a discovery"
+- Alias: "flag a risk"
+- Alias: "log a gotcha"
+- Register as a slash command, skill, or remembered instruction.
+
+**`open-board.md`**
+- Trigger: "show the board"
+- Alias: "open the board"
+- Alias: "show me the Kanban board"
+- Alias: "open the backlog"
+- Register as a slash command, skill, or remembered instruction.
+
+## 10. Confirm Installation
+
+Summarize to the user:
+
+- ✅ Scripts installed
+- ✅ Skill(s) installed
+- ✅ Artifact(s) set up
+- ✅ Protocol registered: "set up a backlog"
+- ✅ Protocol registered: "add a story"
+- ✅ Protocol registered: "log a decision"
+- ✅ Protocol registered: "show the board"
+- Any missing dependencies and their impact on the workflow
+
+**How to use:**
+- Say **"set up a backlog"** to trigger the init-backlog workflow.
+- Say **"add a story"** to trigger the track-work workflow.
+- Say **"log a decision"** to trigger the capture-knowledge workflow.
+- Say **"show the board"** to trigger the open-board workflow.
+
+## 11. Write installed.json
+
+Write `{{config.install_dir}}/installed.json` with:
+
+```json
+{
+  "package": "cowork-backlog",
+  "version": "1.0.0",
+  "installed_at": "<current ISO-8601 timestamp>",
+  "platform": "<detected platform id — e.g. cowork, codex, claude-code, cursor>",
+  "a3ip_spec": "1.10",
+  "config_dir": "{{config.install_dir}}"
+}
+```
+
+This is the canonical install record. The next install/upgrade of this
+package looks for this file at `{{config.install_dir}}/installed.json` —
+if present, it runs the Upgrading flow instead of a fresh install.
+
+
+---
+
+## Platform-Specific Notes
+
+### Cowork
+Anthropic Cowork - Personal Skills UI registration via .skill zip; first-class artifact registry via mcp__cowork__create_artifact.
+See `adapters/runtime/cowork/install-skill.md` for registration mechanics, artifact handling, and any platform-specific quirks.
+
+### Claude Code
+Anthropic Claude Code - skill files at ~/.claude/skills/<name>/; auto-discovered on session start, no separate registration step.
+See `adapters/runtime/claude-code/install-skill.md` for registration mechanics, artifact handling, and any platform-specific quirks.
+
+### Other platforms
+Core protocols and components are platform-neutral; adapt as needed.
+
+---
+
+## Upgrading
+
+When `installed.json` is found at `{{config.install_dir}}/installed.json`,
+follow these steps instead of the full install.
+
+### Step U1 — Read installed version
+Read `{{config.install_dir}}/installed.json`. Note the `version` field.
+
+### Step U2 — Apply CHANGELOG steps
+Find all version entries in `CHANGELOG.md` newer than the installed version.
+Apply them in order from oldest to newest. For each version entry:
+1. Check `### Breaking changes` — if any, tell the user before proceeding.
+2. Check `### Config changes` — if new required keys, run the config wizard
+   for those keys only.
+3. Follow `### Upgrade steps` exactly.
+
+### Step U3 — Update installed.json
+After all upgrade steps complete, overwrite `{{config.install_dir}}/installed.json`
+with the new `version` and `installed_at` timestamp. Preserve the existing
+`platform`, `a3ip_spec`, and `config_dir` fields.
+
+### Step U4 — Confirm
+Tell the user the versions upgraded from and to, and the changes applied.
+
+Do **not** run the full install sequence during an upgrade.
+Apply only the delta steps listed in CHANGELOG.md.
+
+## Uninstalling
+
+Triggered when the user says "uninstall cowork-backlog", "remove cowork-backlog",
+or equivalent. Uninstall is idempotent -- running it when the package is
+not installed is a no-op (Step UN1 exits cleanly), not an error.
+
+### Step UN1 -- Locate the existing install
+*Tier: 2 (required outcome -- adapter procedure)*
+
+After this step, the AI MUST know whether this package is installed on
+the host, and if so where its `config_dir` lives. The discovery mechanism
+is host-runtime-specific -- read `adapters/runtime/<platform>/uninstall-skill.md`
+for how to locate prior installs on the current platform. This is the
+symmetric counterpart of INSTALL.md Step 1.
+
+- **Not found:** tell the user there is nothing to uninstall and exit
+  cleanly. Steps UN2 onward are skipped.
+- **Found:** read the `version`, `platform`, `config_dir`, and `install_method`
+  fields from `installed.json`. They drive every subsequent step.
+
+### Step UN2 -- Show the Uninstall Plan and resolve per-key config policy
+*Tier: 1 (mechanical)*
+
+Present an Uninstall Plan that lists, item by item:
+
+- The skill files that will be removed (paths derived per the platform's adapter).
+- The artifacts that will be removed (artifact names and their host-runtime mechanism).
+- Any host-runtime registrations that will be reverted (e.g. on Codex: the
+  `<!-- a3ip:cowork-backlog:start --> ... <!-- a3ip:cowork-backlog:end -->`
+  block in `~/.codex/AGENTS.md`).
+- The per-key disposition of every configuration value (see below).
+- The `installed.json` file that will be removed.
+
+**Resolving the config-key policy.** Walk every entry in the `configuration:`
+block of `manifest.yaml` and consult its `preserve_on_uninstall:` field:
+
+- `true` -- silently classified as *preserve*. The user is NOT asked.
+- `false` -- silently classified as *purge*. The user is NOT asked.
+- `ask` (or field omitted) -- the AI MUST ask the user, per key, whether to
+  preserve or remove that value.
+
+End with **Confirm to proceed.** If the user declines, abort -- nothing is removed.
+
+### Step UN3 -- Make skills un-discoverable to the host runtime
+*Tier: 2 (required outcome -- adapter procedure)*
+
+After this step, the host runtime MUST NOT load any skill from
+`components/skills/` in response to its trigger phrases. The procedure
+depends on how skills were made discoverable in install Step 5 -- read
+`adapters/runtime/<platform>/uninstall-skill.md` for the platform-specific
+procedure.
+
+### Step UN4 -- Remove artifacts from the host runtime
+*Tier: 2 (required outcome -- adapter procedure)*
+
+After this step, the host runtime MUST NOT surface any artifact this
+package created in install Step 6.
+
+### Step UN5 -- Make protocols no longer invocable
+*Tier: 2 (required outcome -- adapter procedure)*
+
+After this step, the host runtime MUST NOT recognize this package's
+protocol trigger phrases.
+
+### Step UN6 -- Remove install_dir contents
+*Tier: 1 (mechanical)*
+
+Apply the per-key decisions resolved in Step UN2:
+
+1. Read the current `{{config.install_dir}}/config.json`.
+2. Construct a new version containing ONLY the keys whose disposition is *preserve*.
+3. Write the trimmed object back, OR remove the file if no keys survive.
+4. For each *purge* key whose `storage:` is non-config-file (e.g. `keychain`),
+   remove it from that storage too (read the uninstall adapter for the
+   platform's keychain/credential-removal mechanism).
+5. Delete every other file and subdirectory in `{{config.install_dir}}`
+   EXCEPT `config.json` (if preserved) and `installed.json`.
+
+### Step UN7 -- Remove installed.json
+*Tier: 1 (mechanical)*
+
+Remove `{{config.install_dir}}/installed.json`. If the install directory
+is empty after this, the AI SHOULD remove the empty directory too.
+
+### Step UN8 -- Confirm to the user
+*Tier: 1 (mechanical)*
+
+Tell the user the uninstall completed. Name the version that was
+uninstalled, which configuration keys were preserved (with their locations),
+which were purged, and any leftover state the user may want to know about.
+
+=== END FILE ===
+
+=== FILE: README.md ===
+# cowork-backlog
+
+Manage a lightweight project backlog — iterations, stories, tasks, notes, and a read-only Kanban board — across one or more Cowork projects, with all state in human-readable markdown owned by a deterministic engine.
+
+## Workflows
+
+- **"set up a backlog"** — Scaffold a project's .backlog/ folder, create its first iteration, and register it on the shared board.
+- **"add a story"** — Add stories and tasks, and advance their status across the board columns (planned → in_progress → test → completed).
+- **"log a decision"** — Record durable project knowledge as a note (decision, discovery, risk, or gotcha), distinct from actionable work or CLAUDE.md directives.
+- **"show the board"** — Surface the read-only Kanban board for the tracked project(s).
+
+## Installation
+
+This is an A3IP package. To install it, give the `.a3ip.bundle` file to
+your AI assistant and ask it to install the package.
+
+The AI will guide you through the configuration wizard and set everything up.
+
+## Platforms
+
+- cowork
+- claude-code
+
+## Author
+
+Maksym Prydorozhko <maksym.prydorozhko@gmail.com>
+
+=== END FILE ===
+
+=== FILE: adapters/os/posix/file-ops.md ===
+# POSIX (macOS / Linux) file operations -- OS-level conventions
+
+This adapter governs filesystem operations on a POSIX host. It contains
+ONLY OS-axis facts. Runtime-axis concerns -- which file tool, which
+sandboxing model -- live in `adapters/runtime/<runtime>/install-skill.md`,
+NOT here.
+
+## User home
+
+On POSIX systems, the user home is `/home/<user>/` on Linux and
+`/Users/<user>/` on macOS. The environment variable is `$HOME`.
+
+## Path separator
+
+Forward slashes throughout.
+
+## Persistent locations
+
+Persistent install directories on POSIX usually live under
+`~/.<runtime>/packages/<name>/`. The exact subdirectory under the home is
+runtime-specific -- see the runtime adapter for the target platform.
+
+## Path expansion behavior
+
+Most POSIX file-reading APIs handle `~` natively (shell expansion, Python's
+`os.path.expanduser`, etc.). Even so, the install adapter SHOULD resolve
+`~` to an absolute path before persisting any value -- different tools at
+runtime may treat `~` differently, and storing the expanded value makes the
+file portable to runtimes that do not expand.
+
+Strip trailing `/` from any user-provided directory path before storing it.
+
+=== END FILE ===
+
+=== FILE: adapters/os/windows/file-ops.md ===
+# Windows file operations -- OS-level conventions
+
+This adapter governs filesystem operations on a Windows host. It contains
+ONLY OS-axis facts (path conventions, home-variable, expansion behavior).
+Runtime-axis concerns -- which specific file tool to use for `~`-prefixed
+paths, how a particular AI runtime sandboxes file access, what to do when
+the runtime's bash sandbox conflicts with Windows paths -- live in
+`adapters/runtime/<runtime>/install-skill.md`, NOT here.
+
+## User home
+
+On Windows, the user home directory is typically `C:/Users/<user>/`.
+The environment variable is `%USERPROFILE%`. OneDrive-redirected home
+folders are normal -- the resolved path may be under
+`C:/Users/<user>/OneDrive/` rather than `C:/Users/<user>/`. Use whatever
+resolved path the OS returns at install time.
+
+## Path separator
+
+In JSON files and most modern APIs, forward slashes are accepted.
+Native Windows tooling (legacy APIs, batch scripts) prefers backslashes.
+Strip trailing `/` and `\` from any user-provided directory path before
+storing it -- the spec's path-separator normalization rule applies on
+every host OS.
+
+## Persistent locations
+
+Persistent install directories on Windows usually live under
+`%USERPROFILE%/.<runtime>/packages/<name>/`. The exact subdirectory under
+the user home is runtime-specific -- see the runtime adapter for the
+target platform.
+
+## Path expansion behavior
+
+A bare `~` is NOT expanded by all file-reading APIs. Some tools auto-expand
+it to `%USERPROFILE%`; others treat it as a literal directory named `~`.
+The install adapter MUST resolve `~` to its absolute Windows path before
+persisting any value to `config.json` or `installed.json`. Storing a
+literal `~` breaks the runtime config lookup on any tool that does not
+expand it.
+
+Which specific tool/method to use for this expansion is a runtime concern
+-- consult `adapters/runtime/<runtime>/install-skill.md` for that
+platform's recommended approach.
+
+=== END FILE ===
+
+=== FILE: adapters/runtime/claude-code/install-skill.md ===
+# Claude Code runtime adapter — cowork-backlog
+
+This adapter is platform-knowledge for installing `cowork-backlog` on
+**Claude Code** (Anthropic's CLI developer agent). The installing AI
+reads this as context, then applies it to satisfy the Tier 2 outcomes
+in INSTALL.md — specifically the "make skills discoverable" step, the
+"make artifacts available" step (if this package ships artifacts), and
+the "make protocols invocable" step. The rest of INSTALL.md still
+applies — install detection, configure wizard, resolve install_dir,
+write config.json, write installed.json, and the Upgrading flow — all
+governed by INSTALL.md and the A3IP spec, not by this adapter.
+
+Per A3IP spec v1.10 'Writing Adapter Documents', adapter content is
+platform knowledge, not installation script. The code blocks below are
+illustrative worked examples — adapt them to actual paths and user
+choices rather than executing them verbatim.
+
+## How Claude Code discovers skills
+
+Claude Code **auto-discovers skills from `~/.claude/skills/`** on each
+session start. Unlike Codex, no separate registration step is needed
+— dropping a directory with a SKILL.md file into the skills folder is
+sufficient for the runtime to surface it.
+
+This makes the Claude Code install flow shorter than Codex's:
+
+- **Skill files live at `~/.claude/skills/cowork-backlog/`** — one directory
+  per skill. The directory must contain `SKILL.md` at its root (Claude
+  Code looks for SKILL.md there, not under `components/`).
+- **No AGENTS.md, no slash-command registration, no UI step.** The
+  skill becomes available the next time Claude Code reads its skill
+  index — typically on next session start, though `claude --refresh`
+  or equivalent commands may force a re-scan in-session if the runtime
+  supports it.
+- **Triggers come from the SKILL.md frontmatter.** The `description:`
+  field's trigger-phrase content is what Claude Code matches user
+  utterances against. The package's protocol triggers transitively
+  satisfy the "make protocols invocable" outcome once the skill is
+  in place.
+
+There is no UI registry, no marker file, no "Save skill" button. File
+presence is the registration.
+
+## Other Claude Code conventions
+
+**Per-install state** lives at `{{config.install_dir}}` (typically
+`~/.claude/packages/cowork-backlog/`). This is where `config.json`,
+`installed.json`, and any package-managed runtime records live. These
+paths are governed by INSTALL.md and the A3IP spec, not by this
+adapter.
+
+**No HTML artifact mechanism.** Claude Code has no equivalent of
+Cowork's `mcp__cowork__create_artifact`. Artifacts degrade to markdown
+files the runtime updates in-place at
+`{{config.install_dir}}/<artifact-name>.md`. The SKILL.md still
+treats each as a single named record — same purpose, different
+medium. Seed each from
+`components/artifacts/<artifact-name>/artifact.md` at install time.
+
+**No "Save skill" UI.** Skills install as plain files; there's no
+restart-required UI flow. The next session reads files fresh.
+
+**`install_method: "generic-copy"`** in `installed.json` per A3IP
+spec v1.10 Platform Conventions, distinguishing the Claude Code flow
+from Cowork's `"cowork-skill"` UI flow. (Claude Code shares the
+generic-copy method with Codex; the difference between them is the
+registration mechanism — Claude Code auto-discovers, Codex needs the
+AGENTS.md stanza.)
+
+**Host OS default is POSIX.** Claude Code is typically deployed on
+macOS or Linux developer machines. Windows is supported (via WSL or
+native), but path operations and shell semantics default to POSIX
+conventions in this adapter. On a Windows host, follow
+`adapters/os/windows/file-ops.md` for OS-specific deviations.
+
+**`~` expansion is well-defined.** Claude Code runs in the user's
+native shell environment; `~` expands to `$HOME` (POSIX) or
+`%USERPROFILE%` (Windows) without ambiguity. (Contrast with Cowork's
+bash sandbox, where `~` resolves to an ephemeral Linux home.)
+
+## What gets installed where
+
+| Artifact | Claude Code location | Mechanism |
+|---|---|---|
+| Skill payload (SKILL.md + scripts/) | `~/.claude/skills/cowork-backlog/` | File copy; auto-discovered on next session |
+| Per-install state | `{{config.install_dir}}` | config.json, installed.json, artifact markdown record(s) |
+| Each artifact record (if any) | `{{config.install_dir}}/<artifact-name>.md` | Markdown the runtime rewrites after each trigger |
+
+## Worked example: the install flow on Claude Code
+
+The steps below are illustrative — they describe one way to achieve
+the Tier 2 outcomes on Claude Code. The install AI may adapt for
+variations (the user's install_dir, a Windows host where POSIX
+shell idioms need PowerShell translation, an existing skill from a
+prior install).
+
+### Step C1: Detect prior install
+
+Look at `{{config.install_dir}}/installed.json`. Use the file tool
+that expands `~` correctly on this host (`os.path.expanduser('~')` in
+Python or shell-native `~` substitution).
+
+- **Found:** read the `version` field. Go to **Upgrading an existing
+  Claude Code install** at the end of this document.
+- **Not found:** continue with fresh install.
+
+### Step C2: Extract bundle to a temp directory and validate
+
+Before touching `~/.claude/skills/`, unpack the `.a3ip.bundle` into a
+temp working directory and run `a3ip validate` against the unpacked
+tree. This catches bundle-parsing issues before they affect the live
+install.
+
+```bash
+BUNDLE="<path to cowork-backlog-vX.Y.Z.a3ip.bundle>"
+WORK="$(mktemp -d)/cowork-backlog-vX.Y.Z-extracted"
+mkdir -p "$WORK"
+# Parse the bundle (line-delimited === FILE: <path> === blocks) and
+# write each file under $WORK using your scripting tool of choice.
+
+a3ip validate "$WORK"
+```
+
+If validation fails, do NOT proceed to overwriting the live skill
+directory. Fix or escalate.
+
+### Step C3: Back up existing skill (if upgrading)
+
+If `~/.claude/skills/cowork-backlog/` exists, back it up before overwriting.
+A timestamped folder under `~/.claude/backups/` is the convention;
+tell the user the backup path so they can roll back.
+
+```bash
+SKILL="$HOME/.claude/skills/cowork-backlog"
+BACKUP_ROOT="$HOME/.claude/backups"
+if [ -d "$SKILL" ]; then
+    mkdir -p "$BACKUP_ROOT"
+    cp -r "$SKILL" "$BACKUP_ROOT/cowork-backlog-$(date +%Y%m%dT%H%M%S)"
+fi
+```
+
+### Step C4: Install the skill payload
+
+Replace the live skill directory with the validated extraction. The
+runtime payload is everything SKILL.md needs at runtime: SKILL.md
+itself (lifted to the skill root), the scripts it invokes, and any
+artifact templates it reads.
+
+Lift `components/skills/cowork-backlog/SKILL.md` to `$SKILL/SKILL.md`
+(the skill root) — Claude Code looks there, not in `components/`.
+Then substitute the absolute `install_dir` into all markdown files
+in the installed skill (SKILL.md plus any protocol files that
+reference `{{install_dir}}`). Rationale: `install_dir` is a non-secret
+deterministic path — substituting it at install time is the only way
+the runtime AI knows where to read config.json. Other config keys
+(tokens, secrets, identifiers) are NOT substituted; they stay in
+config.json so the skill remains portable across config changes.
+
+**Path-separator normalization (required).** The `install_dir` value
+sourced from `CONFIGURE.md` or a prior `installed.json` may end with
+a trailing path separator. SKILL.md templates reference files as
+`{{install_dir}}/config.json` with a leading `/`. A naive substitution
+of a trailing-separator value into a leading-slash template produces
+a path with a doubled separator. On POSIX the kernel collapses `//`,
+but on Windows hosts (Claude Code via WSL or native) mixed
+separators may still cause issues. Strip trailing `/` and `\` from
+the install_dir value before substituting.
+
+Illustrative (POSIX shell; Windows hosts adapt to PowerShell per
+`adapters/os/windows/file-ops.md`):
+
+```bash
+SKILL="$HOME/.claude/skills/cowork-backlog"
+INSTALL_DIR="<absolute install_dir from CONFIGURE.md>"
+INSTALL_DIR="${INSTALL_DIR%/}"      # strip trailing /
+INSTALL_DIR="${INSTALL_DIR%\\}"     # strip trailing \
+
+rm -rf "$SKILL"
+mkdir -p "$SKILL"
+cp -r "$WORK"/* "$SKILL"/
+cp "$WORK/components/skills/cowork-backlog/SKILL.md" "$SKILL/SKILL.md"
+
+# Substitute {{install_dir}} in every .md file in the installed skill
+find "$SKILL" -name '*.md' -type f | while read -r f; do
+    if grep -q '{{install_dir}}' "$f"; then
+        sed -i.bak "s|{{install_dir}}|$INSTALL_DIR|g" "$f"
+        rm "$f.bak"
+    fi
+done
+```
+
+(macOS uses `sed -i ''` instead of `sed -i.bak` + `rm`; adapt as
+needed. Or use Python for portable substitution.)
+
+### Step C5: Initialize artifact record(s) — if any
+
+For each artifact declared in the package manifest, create a markdown
+file the runtime will keep up to date. This is the Claude Code-side
+stand-in for Cowork's artifact card: same purpose (one record,
+updated on trigger), different medium.
+
+```bash
+RECORD="$INSTALL_DIR/<artifact-name>.md"
+if [ ! -f "$RECORD" ]; then
+    cp "$WORK/components/artifacts/<artifact-name>/artifact.md" "$RECORD"
+fi
+```
+
+If the record already exists (from a previous install), leave it in
+place — it carries the user's most recent state. The SKILL.md
+updates the file in place on each trigger.
+
+If `cowork-backlog` ships no artifacts, skip this step entirely.
+
+### Step C6: Write installed.json
+
+Per A3IP spec v1.10 Platform Conventions, Claude Code installs use
+`install_method: "generic-copy"`:
+
+```json
+{
+  "package": "cowork-backlog",
+  "version": "<NEW>",
+  "installed_at": "<ISO-8601 timestamp>",
+  "upgraded_from": "<previous version, or omit if fresh install>",
+  "platform": "claude-code",
+  "a3ip_spec": "1.10",
+  "config_dir": "{{config.install_dir}}",
+  "install_method": "generic-copy",
+  "source_bundle": "<absolute path to the .a3ip.bundle used>",
+  "backup_dir": "<absolute path to backup from C3, or omit if fresh>"
+}
+```
+
+Per spec: `upgraded_from`, `source_bundle`, and `backup_dir` are
+optional; include them when applicable. Readers MUST tolerate their
+absence.
+
+### Step C7: Verify the install end-to-end
+
+Two confirmations:
+
+1. **Static:** `a3ip validate $SKILL` should report
+   `[OK] Validation passed`.
+2. **Runtime:** start a NEW Claude Code session (so the skill index is
+   freshly scanned) and say one of the package's trigger phrases. The
+   AI should recognise the trigger, read config from
+   `<install_dir>/config.json`, and behave per the SKILL.md. If
+   Claude Code does not recognise the trigger, check that the skill
+   directory exists at `~/.claude/skills/cowork-backlog/` and contains a
+   valid SKILL.md with the expected `description:` frontmatter.
+
+### Step C8: Clean up
+
+```bash
+rm -rf "$WORK"
+```
+
+## Upgrading an existing Claude Code install
+
+Triggered when Step C1 found `{{install_dir}}/installed.json`.
+
+1. Read the `version` field. Determine which CHANGELOG entries need
+   to apply (everything between installed version and the bundle's
+   version).
+2. Apply each version's `### Upgrade steps` in order. For most
+   packages on Claude Code this is "replace the skill files" —
+   Steps C2 through C7 above suffice for any minor/patch upgrade.
+   Artifact records are preserved through Step C5's idempotency.
+3. For major bumps or breaking changes (per CHANGELOG
+   `### Breaking changes`), follow the explicit instructions in
+   that version's changelog entry before re-running C2–C7. If config
+   keys changed, re-run the wizard for those keys and rewrite
+   `config.json` before reinstalling the skill payload.
+4. Update `installed.json` (Step C6) with the new version and
+   `upgraded_from` = previous version. Preserve `config_dir`,
+   `install_method`, optionally bump `a3ip_spec` and `backup_dir`.
+
+## Troubleshooting
+
+**`a3ip` command not on PATH after `pip install --user`:** find the
+binary at `~/.local/bin/a3ip` (POSIX) or
+`$env:APPDATA\Python\Python<XY>\Scripts\a3ip.exe` (Windows) and
+invoke explicitly, or add that directory to PATH. (Note: most
+packages do not require `a3ip` at runtime — only the install AI
+uses it for `a3ip validate`.)
+
+**Skill files installed but Claude Code doesn't recognise the
+trigger:** confirm the SKILL.md is at the **root** of
+`~/.claude/skills/cowork-backlog/` (not under a `components/` subdirectory)
+and has the expected `description:` frontmatter. Then start a NEW
+session — Claude Code's skill index is read at startup and may not
+pick up a newly-added skill until the next session.
+
+**Script fails with "config file not found":** SKILL.md still
+contains a literal `{{install_dir}}` because Step C4's substitution
+was skipped. Re-run Step C4, ensuring the substitution variable is
+the absolute path the user chose during CONFIGURE.md.
+
+**Artifact record never updates:** the skill writes via the runtime's
+file tool. Confirm the path is correct and the user account has write
+permission to `{{config.install_dir}}`.
+
+**Unicode crash when running validate:** upgrade to a3ip CLI 1.3.1 or
+higher (`pip install --upgrade --user a3ip`). v1.3.1+ uses ASCII-safe
+console output by default.
+
+**OneDrive-redirected `$HOME` on Windows.** If `~` resolves through
+`%USERPROFILE%` to a OneDrive-redirected path, file operations work
+but may be slower on first access. The Windows file-ops adapter at
+`adapters/os/windows/file-ops.md` covers this case.
+
+=== END FILE ===
+
+=== FILE: adapters/runtime/claude-code/uninstall-skill.md ===
+# Claude Code runtime adapter (uninstall) — cowork-backlog
+
+This adapter is platform-knowledge for **uninstalling** `cowork-backlog`
+on **Claude Code**. The installing AI reads this as context, then
+applies it to satisfy the Tier 2 outcomes in INSTALL.md's
+`## Uninstalling` section — specifically Step UN1 (locate the
+install), Step UN3 (make the skill un-discoverable), Step UN4
+(remove artifacts, if any), and Step UN5 (make protocols no longer
+invocable). The mechanical steps (UN2, UN6, UN7, UN8) are governed
+by INSTALL.md and the A3IP spec, not by this adapter.
+
+Per A3IP spec v1.10 'Writing Adapter Documents', adapter content is
+platform knowledge, not installation script. The code blocks below
+are illustrative worked examples — adapt them to actual paths and
+user choices rather than executing them verbatim.
+
+This adapter is the symmetric counterpart of `install-skill.md` —
+every mechanism that the install side put in place, the uninstall
+side reverses.
+
+## How Claude Code stores installed packages (UN1 discovery)
+
+Claude Code itself does not maintain a global index of installed
+A3IP packages. Discovery is per-package and goes through the
+package's own `installed.json` at the configured `install_dir`.
+
+For `cowork-backlog` on Claude Code, the default install location is
+typically `~/.claude/packages/cowork-backlog/` — but the user may have
+customised it during install. The discovery procedure is:
+
+1. **Default-path check first.** Read
+   `~/.claude/packages/cowork-backlog/installed.json` via the file tool
+   that expands `~` correctly on this host. If the file exists,
+   parse its `config_dir` field — that is the authoritative install
+   location for THIS install.
+
+2. **Followed by the file's own `config_dir`.** Once you have the
+   file's `config_dir`, that is where every subsequent uninstall
+   step operates. Treat it as authoritative for the rest of the
+   flow.
+
+3. **If the default-path file is absent**, the user almost certainly
+   did not customise `install_dir`. Exit cleanly: tell the user
+   "cowork-backlog is not installed at the platform-default location;
+   if you customised install_dir on install, please provide the
+   path."
+
+Read `installed.json` for `version`, `platform`, `config_dir`, and
+`install_method`. The `install_method: "generic-copy"` value tells
+you this was a Claude Code-flow install (or another generic-copy
+platform). The `platform: "claude-code"` field confirms you're in
+the right adapter.
+
+## How Claude Code un-registers skills (UN3)
+
+Because Claude Code **auto-discovers skills from
+`~/.claude/skills/`**, un-discovery is the inverse: delete the skill
+directory. There is no AGENTS.md stanza to remove (Codex), no UI
+panel to click through (Cowork). One operation:
+
+1. **Remove the skill directory at `~/.claude/skills/cowork-backlog/`.**
+   This is `rm -rf` semantics on the skill directory. After this,
+   Claude Code's next session scan will not find the skill, and its
+   trigger phrases will no longer match user utterances.
+
+Illustrative (POSIX shell):
+
+```bash
+SKILL="$HOME/.claude/skills/cowork-backlog"
+if [ -d "$SKILL" ]; then
+    rm -rf "$SKILL"
+fi
+```
+
+On Windows hosts (Claude Code via WSL or native PowerShell), follow
+`adapters/os/windows/file-ops.md` for the equivalent OS-appropriate
+operation (`Remove-Item -LiteralPath $skill -Recurse -Force` in
+PowerShell).
+
+Skill removal takes effect on the next session start. If the user
+has Claude Code running, ask them to start a fresh session so the
+skill index is re-scanned without the removed entry. (The current
+session may still have the skill loaded; that's harmless — the
+files are gone, future sessions won't see them.)
+
+## How Claude Code removes artifacts (UN4)
+
+If `cowork-backlog` declared artifacts in its manifest, the install side
+seeded `{{config.install_dir}}/<artifact-name>.md` from the bundled
+`components/artifacts/<artifact-name>/artifact.md` template for
+each one. Uninstall removes these files.
+
+If the user chose to preserve at least one configuration key in
+Step UN2, an artifact MAY be preserved at the AI's discretion — it
+may carry non-derivable history. The default is to delete
+unconditionally.
+
+Illustrative (POSIX shell, one artifact named
+*`backlog-board`*):
+
+```bash
+RECORD="$INSTALL_DIR/backlog-board.md"
+if [ -f "$RECORD" ]; then
+    rm "$RECORD"
+fi
+```
+
+If `cowork-backlog` ships no artifacts, this step is a no-op.
+
+## How Claude Code de-registers protocols (UN5)
+
+Claude Code protocol triggers come from the SKILL.md `description:`
+frontmatter. Once Step UN3 removes the skill directory, the
+triggers are no longer discoverable — Claude Code's next session
+will not match user utterances to the removed package. So
+**UN5 is a no-op once UN3 completes**.
+
+If UN3 has not run yet and UN5 is reached anyway, the outcome
+cannot be satisfied — return to UN3.
+
+## Worked example: the uninstall flow on Claude Code
+
+The steps below describe one cohesive way to satisfy the Tier 2
+outcomes on Claude Code. The uninstall AI may adapt for variations
+(e.g., the skill was already removed manually; the user customised
+install_dir).
+
+### Step UCC1: Locate the install (UN1)
+
+Read `~/.claude/packages/cowork-backlog/installed.json` via the
+host-appropriate file tool. If present, capture `config_dir`,
+`version`, `platform`. If absent, exit cleanly.
+
+### Step UCC2: Show the Uninstall Plan (UN2 — mechanical, handled by INSTALL.md)
+
+Walk the config schema. Per the v1.10 `preserve_on_uninstall`
+annotations, ask one focused question per `ask` key, silently
+purge each `false` key, silently preserve each `true` key. Confirm.
+
+### Step UCC3: Remove skill directory (UN3)
+
+Delete the directory tree at `~/.claude/skills/cowork-backlog/`. If the
+directory does not exist (the user removed it manually, or a prior
+uninstall already cleaned it), treat as success — the outcome is
+satisfied.
+
+Ask the user to start a fresh Claude Code session so the skill
+index is re-scanned without the removed entry.
+
+### Step UCC4: Remove artifact records (UN4)
+
+For each artifact declared in the package, delete
+`{{config.install_dir}}/<artifact-name>.md` if present. Skip if
+the user chose to preserve config and the artifact carries history
+the user wanted to keep. If `cowork-backlog` ships no artifacts, skip.
+
+### Step UCC5: Protocols (UN5)
+
+No-op once UCC3 completes. Confirm to the user that the package's
+triggers no longer fire in fresh sessions.
+
+### Step UCC6: Trim config.json and remove install_dir contents (UN6 — mechanical)
+
+Read `config.json` from `config_dir`. Construct a new object with
+only the keys the user chose to preserve (plus any
+`preserve_on_uninstall: true` keys). Write it back, or delete the
+file if no keys survive.
+
+Delete every other file and subdirectory in `config_dir` EXCEPT
+`config.json` (if preserved) and `installed.json`. Artifact records
+were handled in UCC4.
+
+### Step UCC7: Remove installed.json (UN7 — mechanical)
+
+Delete `config_dir/installed.json`. If `config_dir` is now empty,
+remove the directory too.
+
+### Step UCC8: Confirm (UN8 — mechanical)
+
+Tell the user the uninstall is complete. Name:
+1. The version that was uninstalled.
+2. Which configuration keys were preserved and where.
+3. Which keys were purged.
+4. That the skill directory at `~/.claude/skills/cowork-backlog/` has
+   been removed — the package's triggers no longer fire in fresh
+   Claude Code sessions.
+5. Any leftover state: e.g., if any artifact records were
+   preserved, mention their locations.
+
+## Edge cases
+
+**The skill directory was already removed before uninstall ran.**
+UCC3 becomes a no-op. The AI tells the user "the skill directory is
+already absent; continuing with config and file cleanup."
+
+**`installed.json` is missing but the install_dir has other files.**
+This indicates a partial install. The AI MAY offer to clean up the
+leftover files or leave them in place at the user's choice.
+
+**The user changed the `install_dir` since install.** The
+`config_dir` stored in `installed.json` is the authoritative source.
+If the user moved the directory between install and uninstall, ask
+them where the package's files actually live and use that path
+instead.
+
+**Windows host (Claude Code via WSL or native).** All POSIX shell
+idioms above need PowerShell or WSL-bash translation. See
+`adapters/os/windows/file-ops.md` for the canonical tool-selection
+guidance.
+
+**OneDrive-redirected `$HOME` on Windows.** `~` resolves through
+`%USERPROFILE%`, which may point to `C:\Users\<user>\OneDrive\`
+rather than `C:\Users\<user>\`. The Windows file-ops adapter
+covers this — use the YES-row tool to expand `~` properly.
+
+=== END FILE ===
+
+=== FILE: adapters/runtime/cowork/install-skill.md ===
+# Cowork runtime adapter — cowork-backlog
+
+This adapter is platform-knowledge for installing `cowork-backlog` on Cowork.
+The installing AI reads this as context, then applies it to satisfy the
+Tier 2 outcomes in INSTALL.md — specifically the "make skills
+discoverable" step, the "make artifacts available" step (if this package
+ships artifacts), and the "make protocols invocable" step. The rest of
+INSTALL.md still applies — install detection, configure wizard, resolve
+install_dir, write config.json, write installed.json, and the Upgrading
+flow — all governed by INSTALL.md and the A3IP spec, not by this adapter.
+
+Per A3IP spec v1.10 'Writing Adapter Documents', adapter content is
+platform knowledge, not installation script. The code blocks below are
+illustrative worked examples — adapt them to actual paths and user
+choices rather than executing them verbatim.
+
+## How Cowork discovers and registers skills
+
+Cowork's **Personal Skills UI** is the registration mechanism. A skill
+placed directly into Cowork's skills folder outside of this UI flow will
+be ignored or overwritten when Cowork regenerates its internal skill
+registry on restart. The right path is:
+
+1. Build a `.skill` zip containing SKILL.md at the archive root plus any
+   bundled runtime resources (scripts, artifact templates) in
+   subdirectories.
+2. Present the zip via `mcp__cowork__present_files` so the user gets a
+   **"Save skill"** button in the chat UI.
+3. After the user clicks Save skill and restarts Cowork, the skill
+   appears in Personal Skills and is available in every session and
+   project. The restart is required — Cowork's skill registry only
+   refreshes on startup.
+
+Cowork also discovers trigger phrases from the SKILL.md's `description:`
+frontmatter automatically; no separate protocol registration is needed.
+This is why the "make protocols invocable" step is a no-op on Cowork
+once the skill installs.
+
+Per-package state (config.json, installed.json, scripts) still lives at
+`{{config.install_dir}}` per the spec — the `.skill` zip is the Cowork
+mechanism for registering the skill globally, not a replacement for the
+spec install directory.
+
+## What a .skill file is
+
+A `.skill` file is a zip archive containing SKILL.md at the root plus
+any bundled resources (scripts, artifact templates) in subdirectories.
+
+Valid SKILL.md frontmatter fields for Cowork:
+`allowed-tools`, `compatibility`, `description`, `license`, `metadata`,
+`name`.
+
+Cowork rejects `version:` and `scripts_dir:`. Strip these from the
+bundled SKILL.md before packaging — see Step C1 below.
+
+## How Cowork handles artifacts
+
+Cowork has a first-class artifact registry. The installing AI calls
+`mcp__cowork__create_artifact` during install, and the artifact appears
+in the user's sidebar immediately — not on first use. The runtime
+updates it via `mcp__cowork__update_artifact` on its trigger event. This
+is why other platform adapters (Codex, Claude Code) often degrade the
+artifact to a markdown file the runtime rewrites in place: those
+platforms lack this mechanism.
+
+If `cowork-backlog` ships no artifacts, skip the artifact-related steps below
+(C3, C5 of the upgrade flow).
+
+## Worked example: the install flow on Cowork
+
+The steps below are illustrative — they describe one way to achieve the
+Tier 2 outcomes on Cowork. The install AI may adapt for variations
+(non-default install_dir, alternative bundle extraction, an artifact
+that already exists from a prior install, etc.).
+
+### Step C1: Prepare SKILL.md — strip frontmatter and substitute install_dir
+
+Two transformations on the bundled SKILL.md (typically at
+`components/skills/cowork-backlog/SKILL.md`) before packaging:
+
+1. **Strip frontmatter fields Cowork rejects** (`version:`,
+   `scripts_dir:`).
+2. **Substitute the `{{install_dir}}` placeholder** with the absolute
+   installation path the user chose (resolved in INSTALL.md Step 5).
+   Substitution is appropriate here because `install_dir` is a path
+   (non-secret, deterministic per install). Do NOT substitute secrets
+   (tokens, api keys) or other config values — those stay in config.json
+   so the skill remains portable across config changes.
+
+**Path-separator normalization (required).** The `install_dir` value
+sourced from `CONFIGURE.md` or a prior `installed.json` may end with a
+trailing path separator (`/` or `\`) — this is a normal operator habit
+on Windows in particular. SKILL.md templates use references like
+`{{install_dir}}/config.json` with a leading `/`. A naive string-replace
+of a trailing-separator value into a leading-slash template produces a
+malformed path with a doubled or mixed separator (e.g.
+`C:\Users\me\.claude\packages\cowork-backlog\/config.json`). POSIX hides the
+symptom because the kernel collapses `//`; Windows path APIs (including
+the Read tool used by the runtime AI) reject the mixed form. Always
+strip trailing `/` and `\` from `install_dir` before substituting so the
+resulting join is well-formed on every host OS.
+
+Illustrative (adapt the install_dir literal and the SKILL.md path):
+
+```python
+import re
+
+install_dir_abs = "<absolute path resolved in INSTALL.md Step 5>"
+install_dir_norm = install_dir_abs.rstrip("/\\")  # see normalization note above
+
+skill_md = open("components/skills/cowork-backlog/SKILL.md", encoding="utf-8").read()
+skill_md = re.sub(r'^(version|scripts_dir):.*\n', '', skill_md, flags=re.MULTILINE)
+skill_md = skill_md.replace("{{install_dir}}", install_dir_norm)
+
+assert "{{install_dir}}" not in skill_md, "install_dir placeholder still in SKILL.md"
+open("/tmp/SKILL_clean.md", "w", encoding="utf-8").write(skill_md)
+```
+
+### Step C2: Package the runtime payload as a .skill zip
+
+The `.skill` archive contains **everything the skill needs at runtime** —
+nothing more, nothing less. The runtime payload is derived from reading
+the cleaned SKILL.md: scripts it invokes, artifact templates it reads,
+local docs it falls back to, prompts or templates it expands. Repository
+scaffolding that exists only for source-tree maintenance (git metadata,
+`.a3ip-source.json`, `__pycache__/`, top-level developer-facing README,
+INSTALL.md / CONFIGURE.md consumed at install time) is NOT part of the
+runtime payload.
+
+Layout convention: SKILL.md sits at the archive root (where Cowork
+loads it from); helper files referenced by relative path in SKILL.md
+go in matching paths under the root. Typical mapping for a package with
+one skill, one artifact (named *`backlog-board`*), and one
+script (named *`backlog.py`*):
+
+- `SKILL.md` (cleaned from Step C1) → archive root
+- `scripts/backlog.py` → `scripts/` in the archive
+- `components/artifacts/backlog-board/artifact.html` → `artifact.html` at root
+- `components/artifacts/backlog-board/artifact.md` → `artifact.md` at root
+
+Note that artifact files move to the archive root, not `components/...`
+— that's where the runtime SKILL.md looks for them. This is a deliberate
+re-layout: source tree organization (`components/artifacts/<name>/`)
+differs from the runtime layout the skill expects. The install adapter
+is the one place that knows about both.
+
+Illustrative (adapt paths to actual bundle extraction and component
+names):
+
+```python
+import zipfile, pathlib
+
+pkg_dir = pathlib.Path(".")  # run from inside the cowork-backlog.a3ip/ directory
+out_path = pathlib.Path("/tmp/cowork-backlog.skill")
+
+with zipfile.ZipFile(out_path, "w", zipfile.ZIP_DEFLATED) as zf:
+    zf.write("/tmp/SKILL_clean.md", "SKILL.md")
+
+    for f in sorted((pkg_dir / "scripts").rglob("*")):
+        if f.is_file() and "__pycache__" not in f.parts:
+            zf.write(f, f.relative_to(pkg_dir))
+
+    artifact_dir = pkg_dir / "components" / "artifacts" / "backlog-board"
+    if artifact_dir.is_dir():
+        for f in sorted(artifact_dir.iterdir()):
+            if f.is_file():
+                zf.write(f, f.name)
+```
+
+The principle is *bundle what the skill uses at runtime*, derived from
+reading SKILL.md, then place each piece where SKILL.md expects to find
+it.
+
+### Step C3: Create the package's artifact(s) — if any
+
+Each artifact must exist in Cowork's artifact registry before the user
+triggers a workflow that updates it. Create them now (during install)
+in the current Cowork session so they appear immediately.
+
+For each artifact declared in the package manifest:
+
+1. Read `components/artifacts/<artifact-name>/artifact.html` from the
+   bundle.
+2. Call `mcp__cowork__list_artifacts` to check whether an artifact with
+   this name already exists (idempotency for re-installs).
+3. If it does not exist, call `mcp__cowork__create_artifact`:
+
+```
+mcp__cowork__create_artifact
+  name: "<artifact-name>"
+  content: <full HTML content of artifact.html>
+```
+
+If an artifact with this name already exists (from a previous install),
+leave it in place — it may contain the user's recent state. The skill
+updates it via `mcp__cowork__update_artifact` on each trigger.
+
+If `cowork-backlog` ships no artifacts, skip this step entirely.
+
+### Step C4: Present the .skill to the user
+
+Copy the `.skill` file to the Cowork outputs directory (session
+scratchpad), then call `mcp__cowork__present_files`. This renders an
+interactive card with a **"Save skill"** button.
+
+```
+mcp__cowork__present_files  ->  file_path: <outputs_dir>/cowork-backlog.skill
+```
+
+Tell the user:
+> "Click the **Save skill** button on the card to install cowork-backlog into
+> Cowork. Once you've saved it, restart Cowork — the skill will appear
+> in Personal Skills and will be available in every project."
+
+If artifacts were created in Step C3, add:
+> "Your *`<artifact-name>`* card is already in your artifacts list — it
+> will update automatically when the workflow triggers it."
+
+### Step C5: Verify after restart
+
+After the user restarts Cowork, confirm the skill appears in Personal
+Skills. Then verify end-to-end by saying one of the trigger phrases
+declared in the package's protocols. The AI should recognise the
+trigger, read config from `<install_dir>/config.json`, and behave per
+the SKILL.md.
+
+### Step C6: Write installed.json for Cowork installs
+
+Cowork installs MUST set `install_method: "cowork-skill"` in
+installed.json so future upgrades know to rebuild the `.skill` rather
+than patch files in place:
+
+```json
+{
+  "package": "cowork-backlog",
+  "version": "<NEW>",
+  "installed_at": "<ISO timestamp>",
+  "platform": "cowork",
+  "a3ip_spec": "1.10",
+  "config_dir": "{{config.install_dir}}",
+  "install_method": "cowork-skill"
+}
+```
+
+Write this file at `{{config.install_dir}}/installed.json` per spec.
+
+## Upgrading an existing Cowork install
+
+Triggered by INSTALL.md Step 1 finding `installed.json` at
+`{{config.install_dir}}/installed.json` with
+`install_method: "cowork-skill"`.
+
+1. **Read installed version** from `installed.json` (this is Step U1 of
+   the spec Upgrading flow).
+2. **Apply CHANGELOG steps** (Step U2). For each version between
+   installed and current, follow `### Upgrade steps` exactly. Note any
+   config changes — if a new required key is added, run the configure
+   wizard for that key only and write back to `config.json`.
+3. **Rebuild the `.skill` file** from the new bundle (Steps C1–C2
+   above).
+4. **(Idempotent)** check declared artifacts still exist via
+   `mcp__cowork__list_artifacts`; create any missing ones (Step C3
+   above).
+5. **Present the new `.skill`** via `mcp__cowork__present_files`
+   (Step C4).
+6. **Tell the user:**
+   > "An updated version is ready. Click **Save skill** to replace the
+   > existing one, then restart Cowork. Cowork will use the new
+   > version automatically. Your config.json at
+   > `{{config.install_dir}}/config.json` is unchanged."
+7. **After the user confirms restart,** overwrite `installed.json`
+   (Step U3 of the spec) with the new `version` and `installed_at`
+   timestamp, preserving `platform`, `a3ip_spec`, `config_dir`, and
+   `install_method`.
+
+## Troubleshooting
+
+**Install AI reports "fresh install" but the user expected an upgrade**
+— Step 1 of INSTALL.md checks `{{config.install_dir}}/installed.json`.
+If that file is missing (e.g. a prior install didn't complete past the
+installed.json write step), detection correctly returns fresh-install.
+Confirm with the user whether a prior install attempt completed.
+
+**"Save skill" button not visible** — the `.skill` file must be under
+the outputs directory or a connected folder to be presentable via
+`present_files`.
+
+**Skill saves but doesn't trigger on its trigger phrases** — confirm
+Cowork was restarted after saving. The skill registry only refreshes
+on restart.
+
+**Script fails with "config file not found"** — the skill expects
+`<install_dir>/config.json`. Confirm INSTALL.md Step 5 (Resolve
+install_dir) and the install-scripts step ran successfully. The user
+can re-run the configure wizard at any time to rewrite the file.
+
+**Artifact card doesn't appear after install** — Step C3 was skipped
+or `mcp__cowork__create_artifact` failed. Re-run Step C3. The artifact
+lives in Cowork's artifact registry, not in the skill zip, so it
+persists independently of the skill itself.
+
+**Skill disappears after Cowork restart** — it was not registered
+through the UI flow. Repeat Steps C1–C4 and use **Save skill**, not a
+manual file copy.
+
+=== END FILE ===
+
+=== FILE: adapters/runtime/cowork/uninstall-skill.md ===
+# Cowork runtime adapter (uninstall) — cowork-backlog
+
+This adapter is platform-knowledge for **uninstalling** `cowork-backlog` on
+Cowork. The installing AI reads this as context, then applies it to
+satisfy the Tier 2 outcomes in INSTALL.md's `## Uninstalling` section
+— specifically Step UN1 (locate the install), Step UN3 (make the skill
+un-discoverable), Step UN4 (remove the artifact, if any), and Step UN5
+(make protocols no longer invocable). The mechanical steps (UN2, UN6,
+UN7, UN8) are governed by INSTALL.md and the A3IP spec, not by this
+adapter.
+
+Per A3IP spec v1.10 'Writing Adapter Documents', adapter content is
+platform knowledge, not installation script. The code blocks below are
+illustrative worked examples — adapt them to actual paths and user
+choices rather than executing them verbatim.
+
+This adapter is the symmetric counterpart of `install-skill.md` —
+every mechanism that the install side put in place, the uninstall side
+reverses.
+
+## How Cowork stores installed packages (UN1 discovery)
+
+Cowork itself does not maintain a global index of which A3IP packages
+are installed. Discovery is per-package and goes through the package's
+own `installed.json` artifact at the configured `install_dir`.
+
+For `cowork-backlog` on Cowork, the default install location is typically
+`~/.claude/packages/cowork-backlog/` — but the user may have customised it
+during the configure wizard. So the discovery procedure is:
+
+1. **Default-path check first.** Read
+   `~/.claude/packages/cowork-backlog/installed.json` via
+   `mcp__filesystem__read_file`. On Cowork (Windows), `~` expands to
+   the Windows user home through that tool. If the file exists, parse
+   its `config_dir` field — that is the authoritative install location
+   for THIS install. (The default-path lookup is just a starting
+   point; the user may have customised.)
+
+2. **Followed by the file's own `config_dir`.** Once you have the
+   file's `config_dir`, that is where every subsequent uninstall step
+   operates. Treat it as authoritative for the rest of the flow.
+
+3. **If the default-path file is absent**, the user almost certainly
+   did not customise `install_dir` (custom paths only happen if the
+   user actively typed one in during install). Exit cleanly: tell the
+   user "cowork-backlog is not installed at the platform-default location;
+   if you customised install_dir on install, please provide the path."
+
+Do NOT use the bash sandbox to read `installed.json` — bash's `~` is
+the ephemeral Linux sandbox home, not the Windows user home. The
+`mcp__filesystem__read_file` tool is the right path.
+
+## How Cowork un-registers skills (UN3)
+
+The install side registers the skill via the **Personal Skills UI** —
+the user drags the `.skill` zip into Cowork and clicks "Save skill".
+Uninstall inverts this:
+
+1. **Tell the user to remove the skill from the Cowork UI.** Cowork
+   does not expose a programmatic skill-removal API to the running
+   session. The user removes `cowork-backlog` (named per the SKILL.md's
+   `name:` field inside Cowork's Personal Skills panel) by selecting
+   it and clicking the delete/remove action. Cowork will prompt for
+   confirmation.
+
+2. **Cowork's skill registry is in-process state**, refreshed at
+   startup. After the user removes the skill, ask them to restart
+   Cowork so the removal takes effect for new sessions. (The current
+   session may still have the skill loaded; that's harmless — the
+   file is gone, future sessions won't see it.)
+
+3. **Do not try to delete skill files from disk yourself.** Cowork
+   stores installed skills under an internal location managed by the
+   UI; touching it from outside can corrupt the registry. The UI
+   removal is the only supported deregistration path.
+
+Once the skill is removed from Personal Skills, its `description:`
+trigger phrases are no longer registered with Cowork — which
+transitively satisfies Step UN5 (protocols no longer invocable) since
+Cowork loads protocol triggers from the skill's frontmatter.
+
+Illustrative (the message you send to the user during Step UN3 —
+substitute the skill's Cowork display name):
+
+```text
+To complete the uninstall, open Cowork's Personal Skills panel
+(usually in the sidebar or settings), find "cowork-backlog", and
+click Remove. Cowork will prompt for confirmation. After removal,
+restart Cowork so the skill no longer appears in new sessions.
+```
+
+## How Cowork removes artifacts (UN4)
+
+If `cowork-backlog` declared artifacts in its manifest, the install side
+called `mcp__cowork__create_artifact` to surface each one in the
+user's sidebar. Uninstall calls `mcp__cowork__list_artifacts` to find
+them, then `mcp__cowork__allow_cowork_file_delete` (or the platform's
+artifact deletion mechanism if available) to remove them.
+
+Cowork's artifact registry is per-user, so artifacts are identified
+by name rather than by absolute path. If `mcp__cowork__list_artifacts`
+returns multiple artifacts with the same name from prior installs,
+remove all of them.
+
+Illustrative (the artifact removal pattern for one artifact named
+*`backlog-board`*):
+
+```python
+# Find the artifact by name
+artifacts = mcp__cowork__list_artifacts()
+matching = [a for a in artifacts if a["name"] == "backlog-board"]
+
+# Remove each match
+for art in matching:
+    mcp__cowork__allow_cowork_file_delete(art["id"])
+```
+
+If Cowork's environment does not provide a programmatic deletion
+mechanism for the artifact, fall back to asking the user to remove it
+through the Cowork artifact sidebar UI manually.
+
+If at least one configuration key was preserved in Step UN2 (e.g., the
+user keeps a token), the artifact MAY be preserved at the AI's
+discretion — the card's content is often persisted history, which the
+user may want to keep. The default is to remove unconditionally.
+
+If `cowork-backlog` ships no artifacts, this step is a no-op.
+
+## How Cowork de-registers protocols (UN5)
+
+Cowork loads protocol trigger phrases from the SKILL.md `description:`
+frontmatter at session start. Once Step UN3 removes the skill from
+Personal Skills, the triggers are no longer loaded on the next session
+start — so Step UN5 is a no-op once UN3 completes.
+
+If you reach Step UN5 and the skill is still present in Personal Skills
+(UN3 was skipped or failed), Step UN5 cannot succeed on Cowork —
+return to UN3 and complete it first.
+
+## Worked example: the uninstall flow on Cowork
+
+The steps below describe one cohesive way to satisfy the Tier 2
+outcomes on Cowork. The uninstall AI may adapt for variations (e.g.,
+the artifact was already removed by a prior partial uninstall; the
+user customised install_dir; the skill is no longer in Personal Skills
+because Cowork was reinstalled).
+
+### Step UC1: Locate the install (UN1)
+
+Read `~/.claude/packages/cowork-backlog/installed.json` via
+`mcp__filesystem__read_file`. If present, capture `config_dir`,
+`version`, `platform`. If absent, exit cleanly.
+
+### Step UC2: Show the Uninstall Plan (UN2 — mechanical, handled by INSTALL.md)
+
+Walk the package's config schema (the `configuration:` section in
+`manifest.yaml`) one key at a time. Do NOT bulk-classify `config.json`
+as a whole — the v1.10 `preserve_on_uninstall` annotation is set
+per-key, and keys within the same file can have opposing policies.
+
+For EACH config key, in declared order, perform this loop:
+
+1. Read the key's `preserve_on_uninstall` value from the manifest.
+2. If `preserve_on_uninstall: true`, add the key to the "will be
+   PRESERVED" section of the uninstall plan. Do NOT ask the user.
+   Do NOT destroy it in UC6.
+3. If `preserve_on_uninstall: false`, add the key to the "will be
+   PURGED" section. Do NOT ask the user.
+4. If `preserve_on_uninstall: "ask"`, send the user ONE focused
+   question that names this key explicitly: e.g. "Keep `api_token`?
+   This stores the GitHub PAT used by the workflow. (y/N)".
+   Capture the response, then route the key into the matching
+   section of the plan.
+
+After the loop, present the assembled Uninstall Plan as TWO explicit
+lists — "Will be preserved" and "Will be purged" — with each key
+named. Add a third short list naming the install_dir files outside
+`config.json` that UC6 will delete. Get explicit user confirmation
+before continuing to UC3.
+
+Worked example (illustrative — adapt to this package's actual keys):
+
+```text
+Uninstall plan for cowork-backlog v1.2.3:
+
+Will be PRESERVED:
+  - api_token  (preserve_on_uninstall: true)
+
+Will be PURGED:
+  - workspace_dir   (preserve_on_uninstall: false)
+  - default_branch  (preserve_on_uninstall: false, user said "purge")
+
+Will be DELETED from install_dir:
+  - artifact records, cached state, install scripts
+
+Proceed? (y/N)
+```
+
+Common mistake (seen in the Sample B v1.1.0 dogfood, 2026-06-21):
+the install AI read `config.json` once, asked one yes/no question for
+the whole file, and silently destroyed everything in it. Sample A's
+`api_token` (preserve_on_uninstall: true) would have been destroyed
+that way. The per-key walk is load-bearing — don't shortcut it.
+
+### Step UC3: Skill removal (UN3)
+
+Send the user the message above asking them to remove the skill from
+Personal Skills and restart Cowork. Wait for confirmation that they
+have done so before moving on.
+
+### Step UC4: Artifact removal (UN4)
+
+If the package declares zero artifacts in its manifest, skip this
+step entirely. Otherwise, for EACH artifact declared:
+
+1. Call `mcp__cowork__list_artifacts()` to enumerate the user's
+   current artifacts.
+2. Filter for entries whose name (or title — whichever field the
+   runtime exposes) matches the artifact name declared by this
+   package. Multiple matches from prior installs are possible —
+   collect ALL of them, don't stop at the first.
+3. For each match, call `mcp__cowork__allow_cowork_file_delete(art["id"])`
+   (or the runtime's artifact-deletion equivalent if the surface has
+   evolved — consult the current Cowork MCP surface).
+4. Call `mcp__cowork__list_artifacts()` a second time to verify the
+   artifact is gone. If it still appears, fall back to asking the
+   user to remove it manually via the Cowork artifact sidebar UI,
+   then proceed.
+
+Worked example (one artifact named *`backlog-board`*):
+
+```python
+# 1. Enumerate
+artifacts = mcp__cowork__list_artifacts()
+
+# 2. Filter all matches by name (not just the first)
+matches = [a for a in artifacts if a["name"] == "backlog-board"]
+
+# 3. Delete each match
+for art in matches:
+    mcp__cowork__allow_cowork_file_delete(art["id"])
+
+# 4. Verify
+remaining = [a for a in mcp__cowork__list_artifacts()
+             if a["name"] == "backlog-board"]
+if remaining:
+    # Tell the user to remove manually via the Cowork sidebar.
+    ...
+```
+
+Exception (preserve case): if the user chose to preserve at least
+one configuration key in UC2 AND the artifact carries non-derivable
+history (past standups, past reviews, etc.), the AI MAY skip
+removal at its discretion. When skipping, name the artifact and its
+location in the UC8 report so the user knows it survived.
+
+Common mistake (seen in the Sample B v1.1.0 dogfood, 2026-06-21):
+the install AI assumed the user could remove the artifact later via
+the sidebar and skipped this step entirely — no
+`mcp__cowork__list_artifacts` call, no
+`mcp__cowork__allow_cowork_file_delete` call. Two artifacts
+(`paper-inbox`, `experiment-log`) remained in the user's sidebar
+after the uninstall "completed". The install side created the
+artifact via `mcp__cowork__create_artifact`; the uninstall side
+owns the symmetric removal.
+
+### Step UC5: Protocols (UN5)
+
+No-op on Cowork once UC3 completes. Confirm to the user that triggers
+are no longer registered.
+
+### Step UC6: Trim config.json and remove install_dir contents (UN6 — mechanical)
+
+Read `config.json` from `config_dir`. Construct a new object with
+only the keys the user chose to preserve (and any
+`preserve_on_uninstall: true` keys). Write it back (or delete the
+file if no keys survive).
+
+Delete every other file and subdirectory in `config_dir` except
+`config.json` (if preserved) and `installed.json`. Use
+`mcp__filesystem__list_directory` and `allow_cowork_file_delete` for
+each item.
+
+### Step UC7: Remove installed.json (UN7 — mechanical)
+
+Delete `config_dir/installed.json`. If `config_dir` is now empty,
+remove the directory too.
+
+### Step UC8: Confirm (UN8 — mechanical)
+
+Send the user a final report that explicitly enumerates each of the
+five items below. This is the audit trail for the uninstall — do not
+summarize, do not omit a section, do not collapse two sections into
+one. Use the exact section labels from the worked example so the
+user can read the report at a glance.
+
+The report MUST contain:
+
+1. **Version uninstalled.** Quote the `version` field from the
+   `installed.json` you captured in UC1.
+
+2. **Keys preserved.** List each preserved key by name, its absolute
+   file path, and either its current value or `(value redacted)` if
+   the key is sensitive (tokens, secrets). If no keys were
+   preserved, write `none`.
+
+3. **Keys purged.** List each purged key by name. If no keys were
+   purged, write `none`.
+
+4. **Skill registration.** State whether the user has confirmed the
+   Personal Skills removal AND restarted Cowork (both required for
+   UC3 to be complete). If the restart has not happened yet, name
+   that as a follow-up so the user knows.
+
+5. **Leftover state.** If any artifact was preserved per the UC4
+   exception, name it and where it lives (sidebar location). If
+   `config_dir` still exists because preserved keys survived, name
+   the directory. Otherwise write `none`.
+
+Worked example (illustrative — adapt to this package's actual state):
+
+```text
+Uninstall complete for cowork-backlog v1.2.3.
+
+Version uninstalled: 1.2.3
+
+Keys preserved:
+  - api_token = (value redacted)
+    at ~/.claude/packages/cowork-backlog/config.json
+
+Keys purged:
+  - workspace_dir
+  - default_branch
+
+Skill registration:
+  Personal Skills entry removed; user confirms Cowork has been
+  restarted. The package's triggers no longer fire.
+
+Leftover state:
+  - Artifact "Last Review" preserved (UC4 exception, contains review
+    history). Visible in the Cowork artifact sidebar.
+  - config_dir ~/.claude/packages/cowork-backlog/ survives because
+    api_token was preserved.
+```
+
+Common mistake (seen in the Sample B v1.1.0 dogfood, 2026-06-21):
+the uninstall AI wrote a vague "Uninstall complete, all done!"
+message with no enumeration of preserved keys, purged keys, or
+leftover state. The user had no way to audit what survived. The
+five-section enumeration IS the contract.
+
+## Edge cases
+
+**The skill was already removed from Personal Skills before uninstall
+ran.** This is fine. Step UC3 becomes a no-op; the AI tells the user
+"the skill is already absent from Personal Skills; continuing with
+config and file cleanup."
+
+**`installed.json` is missing but the install_dir has other files.**
+This indicates a partial install (UN6/UN7 ran in a prior uninstall but
+UN8 confirmation didn't reach the user). The AI MAY offer to clean up
+the leftover files or leave them in place at the user's choice.
+
+**The user changed the `install_dir` since install.** The `config_dir`
+stored in `installed.json` is the authoritative source. If the user
+moved the directory between install and uninstall, ask them where the
+package's files actually live and use that path instead.
+
+=== END FILE ===
+
+=== FILE: components/artifacts/backlog-board/artifact.html ===
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cowork Backlog</title>
+<style>
+  :root{
+    --bg:#f7f6f3; --surface:#ffffff; --col:#efece6; --line:#e3e0d8;
+    --text:#28261f; --muted:#6b675e; --faint:#9a9589;
+    --ai:#7F77DD; --human:#1D9E75; --third:#D85A30; --unassigned:#9a9589;
+    --done:#0F6E56; --prog:#854F0B; --plan:#9a9589; --danger:#A32D2D;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --bg:#1c1b18; --surface:#26241f; --col:#221f1b; --line:#3a382f;
+      --text:#ece9e0; --muted:#a8a39a; --faint:#7c776c; }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    font-size:14px;line-height:1.5;padding:20px;}
+  .topbar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:14px;}
+  .brand{display:flex;align-items:center;gap:8px;font-weight:600;font-size:17px;}
+  .brand .dot{width:11px;height:11px;border-radius:3px;background:var(--ai);}
+  select{font:inherit;padding:6px 10px;border:1px solid var(--line);border-radius:8px;
+    background:var(--surface);color:var(--text);cursor:pointer;}
+  label{font-size:12px;color:var(--muted);}
+  .spacer{margin-left:auto;}
+  .meta{font-size:12px;color:var(--faint);}
+  .legend{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:16px;
+    font-size:12px;color:var(--muted);}
+  .legend .mk{display:inline-flex;align-items:center;gap:5px;}
+  .badge{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;
+    padding:0 4px;border-radius:5px;font-size:10px;font-weight:600;color:#fff;}
+  .goal{font-size:12px;color:var(--muted);margin:-4px 0 14px;}
+  .board{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;align-items:start;}
+  .column{background:var(--col);border-radius:12px;padding:9px;}
+  .colhead{display:flex;justify-content:space-between;align-items:center;padding:2px 4px 9px;}
+  .colname{font-size:13px;font-weight:600;}
+  .colcount{font-size:11px;color:var(--faint);}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:9px;
+    padding:9px 11px;margin-bottom:9px;cursor:pointer;}
+  .card.notasks{cursor:default;}
+  .card .head{display:flex;justify-content:space-between;align-items:center;gap:6px;margin-bottom:5px;}
+  .sid{font-size:11px;color:var(--faint);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+  .marks{display:inline-flex;align-items:center;gap:4px;}
+  .pri{width:8px;height:8px;border-radius:2px;margin-left:3px;}
+  .title{font-size:13px;line-height:1.35;margin-bottom:6px;}
+  .rollup{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);}
+  .chev{transition:transform .12s;display:inline-block;color:var(--faint);}
+  .blocked{font-size:11px;color:var(--danger);font-weight:600;}
+  .tasks{display:none;border-top:1px solid var(--line);margin-top:8px;padding-top:4px;}
+  .task{display:flex;align-items:center;gap:7px;margin-top:5px;font-size:12px;color:var(--muted);}
+  .task .ti{flex:none;width:14px;text-align:center;font-weight:700;}
+  .task .tt{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .task.done .tt{text-decoration:line-through;color:var(--faint);}
+  .empty{color:var(--faint);font-size:12px;padding:8px;}
+  .nodata{color:var(--muted);padding:40px;text-align:center;}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="brand"><span class="dot"></span>Cowork Backlog</div>
+  <label for="proj">Project</label><select id="proj"></select>
+  <label for="iter">Iteration</label><select id="iter"></select>
+  <span class="spacer meta" id="stamp"></span>
+</div>
+<div class="legend" id="legend"></div>
+<div class="goal" id="goal"></div>
+<div class="board" id="board"></div>
+<div class="nodata" id="nodata" style="display:none">No projects registered yet. Run the cowork-backlog skill to create one.</div>
+
+<script>
+var DATA = /*__BACKLOG_DATA__*/null;
+
+var A = {
+  ai:        {c:'var(--ai)',        t:'AI',          s:'AI'},
+  human:     {c:'var(--human)',     t:'Human',       s:'H'},
+  third_party:{c:'var(--third)',    t:'Third-party', s:'3P'},
+  unassigned:{c:'var(--unassigned)',t:'Unassigned',  s:'?'}
+};
+var PRIO = {critical:'#A32D2D', high:'#BA7517', medium:'#6b675e', low:'#9a9589'};
+var TIcon = {completed:['✓','var(--done)','done'], in_progress:['◐','var(--prog)',''], planned:['☐','var(--plan)','']};
+var COLS = [['planned','Planned'],['in_progress','In Progress'],['test','Test'],['completed','Completed']];
+
+function el(id){return document.getElementById(id);}
+
+function renderLegend(){
+  el('legend').innerHTML = Object.keys(A).map(function(k){
+    return '<span class="mk"><span class="badge" style="background:'+A[k].c+'">'+A[k].s+'</span>'+A[k].t+'</span>';
+  }).join('') + '<span class="spacer meta">click a card to expand its tasks</span>';
+}
+
+function currentBoard(){ return DATA.boards[el('proj').value]; }
+
+function fillProjects(){
+  var projs = (DATA.registry.projects||[]);
+  el('proj').innerHTML = projs.map(function(p){
+    return '<option value="'+p.id+'">'+p.name+'</option>';
+  }).join('');
+  var def = DATA.registry.default;
+  if(def) el('proj').value = def;
+}
+
+function fillIterations(){
+  var b = currentBoard(); if(!b) return;
+  var its = b.iterations||[];
+  el('iter').innerHTML = its.map(function(it){
+    return '<option value="'+it.id+'">'+it.id+' · '+it.name+'</option>';
+  }).join('');
+  var cur = b.project && b.project.current_iteration;
+  if(cur && its.some(function(i){return i.id===cur;})) el('iter').value = cur;
+}
+
+function derive(tasks){
+  if(!tasks || !tasks.length) return ['unassigned'];
+  var order=['ai','human','third_party','unassigned'], out=[];
+  order.forEach(function(k){ if(tasks.some(function(t){return (t.assignee||'unassigned')===k;})) out.push(k); });
+  return out.length?out:['unassigned'];
+}
+
+function card(s){
+  var marks = (s.assignees && s.assignees.length)?s.assignees:derive(s.tasks);
+  var done = (s.tasks||[]).filter(function(t){return t.status==='completed';}).length;
+  var total = (s.tasks||[]).length;
+  var markEls = marks.map(function(k){ k=A[k]?k:'unassigned';
+    return '<span class="badge" style="background:'+A[k].c+'" title="'+A[k].t+'">'+A[k].s+'</span>'; }).join('');
+  var blocked = s.blocked?'<span class="blocked">blocked</span>':'';
+  var rollup = total
+    ? '<span class="rollup"><span class="chev">▸</span>'+done+'/'+total+' tasks</span>'
+    : '<span class="rollup" style="color:var(--faint)">no tasks</span>';
+  var rows = (s.tasks||[]).map(function(t){
+    var ic = TIcon[t.status]||TIcon.planned;
+    var ak = A[t.assignee]?t.assignee:'unassigned';
+    return '<div class="task '+(ic[2])+'">'
+      + '<span class="ti" style="color:'+ic[1]+'">'+ic[0]+'</span>'
+      + '<span class="tt">'+escapeHtml(t.title)+'</span>'
+      + '<span class="badge" style="background:'+A[ak].c+';min-width:16px;height:16px;font-size:9px" title="'+A[ak].t+'">'+A[ak].s+'</span>'
+      + '</div>';
+  }).join('');
+  var tasksBlock = total?'<div class="tasks">'+rows+'</div>':'';
+  return '<div class="card'+(total?'':' notasks')+'">'
+    + '<div class="head"><span class="sid">'+s.id+'</span>'
+      + '<span class="marks">'+markEls+'<span class="pri" style="background:'+(PRIO[s.priority]||PRIO.medium)+'" title="'+s.priority+'"></span></span></div>'
+    + '<div class="title">'+escapeHtml(s.title)+'</div>'
+    + '<div style="display:flex;justify-content:space-between;align-items:center">'+rollup+blocked+'</div>'
+    + tasksBlock + '</div>';
+}
+
+function escapeHtml(x){return String(x).replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c];});}
+
+function render(){
+  var b = currentBoard();
+  if(!b){ el('board').style.display='none'; el('nodata').style.display='block'; return; }
+  el('stamp').textContent = 'updated ' + (b.generated_at||'').replace('T',' ');
+  var it = el('iter').value;
+  var itObj = (b.iterations||[]).filter(function(i){return i.id===it;})[0];
+  el('goal').textContent = itObj && itObj.goal ? ('Goal — '+itObj.goal) : '';
+  var board = el('board');
+  board.innerHTML = COLS.map(function(c){
+    var items = (b.stories||[]).filter(function(s){return s.iteration===it && s.status===c[0];});
+    var body = items.length?items.map(card).join(''):'<div class="empty">—</div>';
+    return '<div class="column"><div class="colhead"><span class="colname">'+c[1]+'</span>'
+      + '<span class="colcount">'+items.length+'</span></div>'+body+'</div>';
+  }).join('');
+  board.querySelectorAll('.card').forEach(function(cardEl){
+    var tasks = cardEl.querySelector('.tasks'); if(!tasks) return;
+    cardEl.addEventListener('click', function(){
+      var chev = cardEl.querySelector('.chev');
+      var open = tasks.style.display==='block';
+      tasks.style.display = open?'none':'block';
+      if(chev) chev.style.transform = open?'rotate(0deg)':'rotate(90deg)';
+    });
+  });
+}
+
+function boot(){
+  if(!DATA || !DATA.registry || !(DATA.registry.projects||[]).length){
+    el('board').style.display='none'; el('nodata').style.display='block';
+    renderLegend(); return;
+  }
+  renderLegend(); fillProjects(); fillIterations(); render();
+  el('proj').addEventListener('change', function(){ fillIterations(); render(); });
+  el('iter').addEventListener('change', render);
+}
+boot();
+</script>
+</body>
+</html>
+
+=== END FILE ===
+
+=== FILE: components/artifacts/backlog-board/artifact.md ===
+---
+name: backlog-board
+description: "A read-only Kanban board that renders each project's stories as cards across the planned → in_progress → test → completed columns, filtered by iteration, with a project switcher for the multi-project shared view. Reads each project's generated board.json by path; never writes state."
+type: ui-view
+refresh: on-demand
+---
+
+## Purpose
+
+A read-only Kanban board for one or more tracked projects. Each story renders as a card
+in one of four columns — **planned → in_progress → test → completed** — filtered by the
+project's current iteration. A `blocked` flag and the story's derived assignee marks
+(`ai` / `human` / `third_party` / `unassigned`) show on each card. A project switcher
+lets you flip between every registered project from a single board. The board only renders;
+it never changes status or writes any backlog state — all mutations go through the engine.
+
+## Data Sources
+
+The board reads only generated JSON; it never reads or writes the source markdown.
+
+- **Hub registry** — `<hub>/projects.json`: the list of `{id, name, board_path}` entries
+  for every registered project. Drives the project switcher.
+- **Per-project board index** — each project's `.backlog/board.json` (located by the
+  absolute `board_path` from the registry). Holds the iterations, stories, tasks, notes,
+  and derived fields the board displays.
+
+On Cowork the shared artifact reads these by path through the **filesystem** connector.
+A single-project offline view (`board.html`) is also regenerated next to each project's
+`board.json` and embeds its data directly, so it opens in any browser with no connector.
+
+## Fields
+
+| Field | Source | Description |
+|---|---|---|
+| Project | `projects.json` → `name` / `id` | Switcher entry; selects which project's board is shown. |
+| Iteration | `board.json` → `current_iteration` + iterations list | Column filter; the board opens on the current iteration. |
+| Column | story `status` | One of planned / in_progress / test / completed. |
+| Card title | story `title` | The story shown on the card. |
+| Priority | story `priority` | low / medium / high / critical. |
+| Blocked | story `blocked` | Flag (not a column) shown on the card. |
+| Assignees | story `assignees` (derived from tasks) | Distinct marks: ai / human / third_party / unassigned. |
+| Tasks | story `tasks[]` | Per-task title, status, and assignee inside the card. |
+
+## Fallback (no HTML artifact support)
+
+On text-only runtimes, maintain a markdown file with the same four columns
+(planned / in_progress / test / completed) and list each story under its current column.
+Regenerate it from the project's `board.json` whenever a protocol mutates the backlog,
+mirroring what the HTML board would show.
+
+=== END FILE ===
+
+=== FILE: components/protocols/capture-knowledge.md ===
+---
+name: capture-knowledge
+trigger: "log a decision"
+aliases:
+  - "note this"
+  - "record a discovery"
+  - "flag a risk"
+  - "log a gotcha"
+---
+
+## What this protocol does
+
+Record durable project knowledge as a note (decision, discovery, risk, or gotcha), distinct from actionable work or CLAUDE.md directives.
+
+## Steps
+
+1. Decide what surfaced: actionable work becomes a task/story; a fact about the project becomes a note; a directive on how to work becomes a proposed CLAUDE.md line (ask before editing).
+2. Run script backlog with the note command, choosing the type and optionally attaching it to a story, iteration, or the project.
+3. Announce the note in chat with its id and gist so nothing is filed silently.
+
+## Config values used
+
+- `{{config.install_dir}}` — Installation directory
+- `{{config.hub_dir}}` — Shared board hub directory
+
+## Outputs
+
+A new note file under `.backlog/notes/` (id `N-YYYY-MM-DD-NN`) and a regenerated board index. Announce the note's id and gist in chat — never file it silently.
+
+=== END FILE ===
+
+=== FILE: components/protocols/init-backlog.md ===
+---
+name: init-backlog
+trigger: "set up a backlog"
+aliases:
+  - "track this project"
+  - "create a backlog"
+  - "start tracking this project"
+---
+
+## What this protocol does
+
+Scaffold a project's .backlog/ folder, create its first iteration, and register it on the shared board.
+
+## Steps
+
+1. Confirm the project folder to track and the shared hub folder for the cross-project board.
+2. Run script backlog with the init command to scaffold .backlog/ and register the project in the hub.
+3. Add a first logical iteration (phase) with add-iteration, set to active.
+4. Point the user at the regenerated board (hub board.html or the Cowork artifact).
+
+## Config values used
+
+- `{{config.install_dir}}` — Installation directory
+- `{{config.hub_dir}}` — Shared board hub directory
+
+## Outputs
+
+A scaffolded `.backlog/` folder (backlog.yaml, iterations/, stories/, notes/), a generated `board.json` plus a local `board.html`, a first active iteration, and an entry in the hub's `projects.json` registry. Announce the new project id and the board location in chat.
+
+=== END FILE ===
+
+=== FILE: components/protocols/open-board.md ===
+---
+name: open-board
+trigger: "show the board"
+aliases:
+  - "open the board"
+  - "show me the Kanban board"
+  - "open the backlog"
+---
+
+## What this protocol does
+
+Surface the read-only Kanban board for the tracked project(s).
+
+## Steps
+
+1. Run script backlog with sync to force-regenerate the project's board.json and local board.html.
+2. Open the registered Cowork artifact for the switchable cross-project view, or the hub board.html in a browser.
+3. For a quick in-chat glance, run the status command instead.
+
+## Config values used
+
+- `{{config.install_dir}}` — Installation directory
+- `{{config.hub_dir}}` — Shared board hub directory
+
+## Outputs
+
+A freshly regenerated `board.json` + `board.html`, surfaced via the Cowork artifact or the hub `board.html`. Viewing never mutates state.
+
+=== END FILE ===
+
+=== FILE: components/protocols/track-work.md ===
+---
+name: track-work
+trigger: "add a story"
+aliases:
+  - "add a task"
+  - "move that to test"
+  - "what's the status"
+  - "what's next"
+---
+
+## What this protocol does
+
+Add stories and tasks, and advance their status across the board columns (planned → in_progress → test → completed).
+
+## Steps
+
+1. Add stories with add-story (defaulting to the current iteration) and tasks with add-task, setting each task's assignee so the engine derives the story's involvement marks.
+2. Advance work with the move command on a story or task id; never change status via the board, which only renders.
+3. Use the test column when implementation is finished and only verification remains; promote to completed only after verification passes.
+4. Use status for a quick text board, or open the regenerated board for the visual view.
+
+## Config values used
+
+- `{{config.install_dir}}` — Installation directory
+- `{{config.hub_dir}}` — Shared board hub directory
+
+## Outputs
+
+New or updated story/task files under `.backlog/stories/`, recomputed story assignee marks, the new status, and a regenerated `board.json` + `board.html`. Report the affected ids and their new status in chat.
+
+=== END FILE ===
+
+=== FILE: components/skills/cowork-backlog/SKILL.md ===
+---
+name: cowork-backlog
+description: >-
+  Manage a lightweight project backlog — iterations (logical phases), stories, tasks, notes,
+  and a read-only Kanban board — across one or more Cowork projects. Use this whenever the user
+  wants to plan, track, or update project work: creating a backlog, adding or moving stories
+  and tasks, marking progress, recording decisions or discoveries, checking what's in progress
+  or what's next, or opening the board. Trigger on phrases like "add a story", "what's the
+  status", "move that to test", "track this project", "log a decision", "show the board",
+  "set up a backlog", or any request that sounds like organizing project work into a
+  plan/board even if the words "backlog" or "Kanban" aren't used.
+---
+
+# Cowork Backlog
+
+A lightweight execution tracker for Cowork projects. It keeps the backlog, stories, tasks,
+logical iterations (phases), and the knowledge discovered along the way in one place, and
+renders a read-only Kanban board you can keep coming back to. It exists to fix two problems on
+big multi-session projects: losing the overview of progress, and forgetting the small but
+important things discovered mid-work.
+
+All state lives in **human-readable markdown files** inside each project's `.backlog/` folder.
+A deterministic Python engine (`scripts/backlog.py`) owns every change so the conventions never
+drift. **Do not hand-write these files** unless the user explicitly asks — drive the engine,
+which keeps ids, derived fields, the index, and the board consistent.
+
+## The model (six entities)
+
+- **Backlog** — one per project; the manifest (`backlog.yaml`) holding the vocab and the
+  current iteration.
+- **Iteration / Phase** — a *logical* stage of the plan (Discovery, Scaffold, Hardening…), not
+  a time-boxed sprint. The board filters by iteration. Ordered; ids `it-01`, `it-02`, …
+- **Story** — a unit of deliverable value within an iteration; a card on the board. Ids
+  `S-001`, `S-002`, …
+- **Task** — an atomic work item *inside* a story. Ids `T-1`, `T-2`, … scoped to the story.
+- **Note** — durable project knowledge (a decision, discovery, risk, or gotcha). No status,
+  never on the board. Ids `N-YYYY-MM-DD-NN`.
+- **Reference** — a typed pointer tying scattered artifacts to the work: `sess:`, `mem:`,
+  `doc:`, `file:`, `pr:`.
+
+Board statuses (columns): **planned → in_progress → test → completed**. `blocked` is a flag,
+not a column.
+
+## Assignees — derived, never chosen (important)
+
+The `assignee` lives on the **task** and is exactly one of `ai`, `human`, `third_party`, or
+`unassigned` (use `unassigned` when it's genuinely unclear who does it). A **story's
+involvement is derived** by the engine as the distinct set of its tasks' assignees — so a story
+can show several marks at once, and there is **no "AI+Human" type** (that's just two marks). A
+story with no tasks shows `unassigned`. When you create a story, set each task's `assignee`
+based on who should perform it; the engine computes the story marks. Never set a story's
+assignees by hand.
+
+## Two rules you must follow
+
+These are the difference between a tidy backlog and a messy one — internalise them.
+
+### 1. Status changes go through `move`, and the board never changes status
+
+Status is the one thing that moves constantly. To advance work, call `move` (see commands).
+You may move any column to any other (work sometimes goes backwards); the engine warns on
+unusual jumps. A story's status is set **explicitly** — it is not auto-derived from its tasks.
+If all of a story's tasks are completed, you may *suggest* moving the story to completed, but
+let the user/you make that call deliberately. The board only renders; it never writes.
+
+**When to use `test` specifically.** The other columns are self-explanatory; `test` is the one
+that needs judgment. Move a story to `test` when its **implementation work is finished** — every
+task needed to *build* the thing is done — and the only thing left is to **verify it behaves as
+intended**: try it for real, check the output, confirm the behaviour, run a review. In short,
+`test` means "built, now being proven." Keep a story in `in_progress` while any implementation
+task remains; only promote to `completed` once verification has actually passed.
+
+A story may or may not carry explicit testing tasks — that's up to the working process settled
+for the project. Either way, **always consider whether the story needs real-world testing or
+verification before it can be called done.** If it does and that hasn't happened yet, the story
+belongs in `test`, not `completed` — even when every listed task is checked off. If a change
+genuinely can't be meaningfully verified (e.g. a small docs tweak), moving straight to
+`completed` is fine — but make that a conscious decision, not the default. When you move a story
+to `test`, say what still needs verifying so it's clear what "done" will require.
+
+### 2. Route what surfaces mid-work — note vs. work vs. CLAUDE.md
+
+When something comes up during work, decide which of three things it is before defaulting to a
+note:
+
+- **Actionable work to be done** → a new **task** (in the ongoing story) or a new **story**.
+- **Durable knowledge — a fact about the project** (a decision, discovery, risk, gotcha) → a
+  **note**.
+- **A directive on how the AI should work on this project** (a process, convention, preference)
+  → a line in the project's **`CLAUDE.md`**, *not* a note.
+
+The test: a note records *what is true about the project*; `CLAUDE.md` records *how the user
+wants you to behave*. Notes are descriptive knowledge; `CLAUDE.md` is prescriptive instruction.
+
+**Transparency — never act silently:**
+- When you file a note, say so explicitly in chat with its id and gist ("Noted as
+  N-2026-06-21-03: …"). The engine prints this; surface it to the user.
+- Before adding anything to `CLAUDE.md`, **propose the exact line and ask for approval.** Never
+  edit `CLAUDE.md` on your own.
+
+## Running the engine
+
+Run the bundled CLI with the project's Python. Find the script relative to this skill and pass
+the project folder. Examples assume `$SKILL` is this skill's directory:
+
+```bash
+python "$SKILL/scripts/backlog.py" --project "<project_folder>" <command> [options]
+```
+
+- `--project` is the project being tracked (defaults to the current directory).
+- `--hub` is where the shared board + registry live. Resolution order: `--hub` flag →
+  `COWORK_BACKLOG_HUB` env var → the `hub:` field saved in the project's `backlog.yaml` →
+  the project folder itself. Set it once at `init`; afterwards it's remembered.
+- Every mutating command **auto-regenerates** that project's own `.backlog/board.json` and a
+  local `board.html` (a single-project offline view). Routine mutations **do not touch the
+  shared hub registry** — only `init` and `register` do. This is deliberate: it means frequent
+  edits can never clobber another project's registry entry.
+- The **shared cross-project board** is the Cowork artifact, which reads each project's
+  `board.json` directly by the path stored in the hub's `projects.json` (see Multi-project).
+
+### Commands
+
+| Command | Purpose |
+|---|---|
+| `init --name "…" [--id …] [--description …] [--hub …]` | Scaffold `.backlog/`, generate the board, and register the project in the hub's shared registry |
+| `register [--hub …]` | Add/update this project in the hub's shared board registry (point the shared artifact at this project's `board.json`) |
+| `add-iteration --name "…" [--goal …] [--entry …] [--exit …] [--status planned\|active\|completed]` | Add a logical phase |
+| `add-story --title "…" [--iteration it-NN] [--priority low\|medium\|high\|critical] [--status …] [--description …] [--ac "…"]… [--ref sess:…]…` | Add a story (defaults to the current iteration) |
+| `add-task --story S-NNN --title "…" --assignee ai\|human\|third_party\|unassigned [--status …]` | Add a task; recomputes story marks |
+| `move --id S-NNN --status …` / `move --id S-NNN/T-n --status …` | Change a story's or a task's status |
+| `block --id S-NNN --state on\|off` | Set/clear the blocked flag |
+| `note --type decision\|discovery\|risk\|gotcha --text "…" [--attaches S-NNN\|it-NN\|project]` | Record project knowledge (announce it!) |
+| `link --id S-NNN --ref sess:…\|mem:…\|doc:…\|file:…\|pr:…` | Attach a reference |
+| `set-current-iteration --iteration it-NN` | Change which iteration the board opens on |
+| `status [--iteration it-NN]` | Print a text board (quick status without opening HTML) |
+| `sync` | Force-regenerate this project's `board.json` and local `board.html` |
+
+### Typical flows
+
+**Set up a new project's backlog**
+
+```bash
+python "$SKILL/scripts/backlog.py" --project "/path/to/Project" --hub "/path/to/Hub" \
+  init --name "My Project" --description "…"
+python "$SKILL/scripts/backlog.py" --project "/path/to/Project" \
+  add-iteration --name "Discovery" --goal "Lock the plan" --status active
+python "$SKILL/scripts/backlog.py" --project "/path/to/Project" \
+  add-story --title "Draft the spec" --priority high
+python "$SKILL/scripts/backlog.py" --project "/path/to/Project" \
+  add-task --story S-001 --title "Outline sections" --assignee ai
+```
+
+**Update progress**
+
+```bash
+python "$SKILL/scripts/backlog.py" --project "/path/to/Project" move --id S-001/T-1 --status completed
+python "$SKILL/scripts/backlog.py" --project "/path/to/Project" move --id S-001 --status test
+python "$SKILL/scripts/backlog.py" --project "/path/to/Project" \
+  note --type gotcha --attaches S-001 --text "Section 3 depends on the legal review"
+```
+
+After changes, point the user to the regenerated board: `<hub>/board.html` (open in a browser)
+or the registered Cowork artifact, or show `status` in chat for a quick text view.
+
+## Multi-project shared board
+
+You'll track several projects from one shared board, while each project's data stays
+**self-contained in its own folder**. The mechanism is a small registry, not copied data:
+
+- The hub holds one file, `projects.json` — a list of `{id, name, board_path}` entries, where
+  `board_path` is the absolute path to that project's own `.backlog/board.json` (which can live
+  anywhere in the user's folder).
+- The **Cowork artifact** (the shared board in the sidebar) reads `projects.json`, then reads
+  each project's `board.json` **directly by its path** through the filesystem connector — which
+  can see the whole user folder. So the artifact shows every registered project with a project
+  switcher, while nothing is ever copied into a central hub.
+
+To add a project to the shared board: run `init --hub <shared-hub>` (or `register --hub
+<shared-hub>` for an already-initialised project). That writes the project's `board_path` into
+the shared `projects.json`. From then on, the project's day-to-day mutations only touch its own
+folder; the shared artifact picks up changes live on its next open/refresh.
+
+Why this shape: it satisfies "each project's backlog lives in the project folder" *and* "one
+shared, switchable board," and it removes cross-folder snapshot copying — which on a
+cloud-synced setup was fragile (a project could appear to vanish if its snapshot didn't sync).
+The registry is only written by the rare `register`/`init`, never by routine mutations.
+
+## Operational notes / gotchas
+
+- **Cloud-synced hubs (OneDrive / Dropbox / iCloud).** A mounted view of a cloud-synced folder
+  can briefly lag behind the real on-disk contents, so a naive read-merge-write of a shared
+  file could drop data. This engine avoids that: the registry is rebuilt from the per-project
+  snapshots (single-writer files), all writes are atomic (temp file + `os.replace`), and reads
+  retry. Practical guidance: **run mutations from a session whose hub mount is fully synced.**
+  If a project ever looks missing from the board, just run `sync` again once the mount has
+  caught up — the registry self-heals because it is derived, never destructively overwritten.
+- **The hub must be reachable in the session.** Registering or updating a project writes its
+  snapshot into the hub, so the session needs access to both the project folder and the hub
+  folder. For day-to-day work it's simplest to keep the hub folder connected.
+
+## Reference
+
+For the full file layout and frontmatter schema of every entity, read
+`references/schema.md` when you need the details (e.g. to hand-inspect or repair files).
+
+=== END FILE ===
+
+=== FILE: components/skills/cowork-backlog/references/schema.md ===
+# Cowork Backlog — file layout & schema
+
+Source of truth is markdown-with-frontmatter inside each project. Generated artifacts (the
+`board.json` index and everything under the hub) are disposable and rebuilt by the engine.
+
+## Per-project layout
+
+```
+<project>/
+  .backlog/
+    backlog.yaml          # manifest (below)
+    iterations/
+      01-discovery.md     # NN-slug.md, NN = order
+    stories/
+      S-001-draft-spec.md # S-NNN-slug.md
+    notes/
+      N-2026-06-21-01.md
+    board.json            # GENERATED index (do not hand-edit)
+```
+
+## Hub layout
+
+```
+<hub>/
+  projects.json           # registry of tracked projects
+  boards/
+    <project-id>.json     # GENERATED snapshot the board reads
+  board.html              # GENERATED self-contained board (data embedded)
+```
+
+## backlog.yaml (manifest)
+
+```yaml
+id: my-project
+name: "My Project"
+description: "..."
+current_iteration: it-02       # which iteration the board opens on
+statuses: [planned, in_progress, test, completed]
+assignee_types: [ai, human, third_party, unassigned]
+priorities: [low, medium, high, critical]
+hub: /abs/path/to/hub          # remembered hub location
+created: 2026-06-21
+counters: { story: 14 }        # next-id bookkeeping
+```
+
+## Iteration (iterations/NN-slug.md)
+
+```yaml
+id: it-01
+order: 1
+name: "Discovery"
+status: planned                # planned | active | completed
+goal: "Lock the plan"
+entry_criteria: "..."
+exit_criteria: "..."
+created: 2026-06-21
+```
+
+## Story (stories/S-NNN-slug.md)
+
+```yaml
+id: S-014
+title: "Iteration dropdown on the board"
+iteration: it-03
+status: in_progress            # planned | in_progress | test | completed
+priority: high                 # low | medium | high | critical
+blocked: false
+assignees: [ai, human]         # DERIVED from tasks — do not hand-set
+references: [sess:..., doc:...]
+tasks:
+  - { id: T-1, title: "...", status: completed,   assignee: ai }
+  - { id: T-2, title: "...", status: in_progress, assignee: ai }
+  - { id: T-3, title: "...", status: planned,     assignee: human }
+created: 2026-06-21
+updated: 2026-06-21
+```
+
+Body (below the frontmatter) holds `## Description`, `## Acceptance criteria`, and any prose.
+
+## Task
+
+Tasks are not separate files — they live in the story's `tasks:` list. Each task:
+`{ id, title, status, assignee }`. `assignee` ∈ `ai | human | third_party | unassigned`.
+The story's `assignees` is recomputed as the distinct set whenever tasks change; no tasks →
+`[unassigned]`.
+
+## Note (notes/N-YYYY-MM-DD-NN.md)
+
+```yaml
+id: N-2026-06-21-01
+type: decision                 # decision | discovery | risk | gotcha
+attaches_to: S-014             # a story/iteration/task id, or "project"
+date: 2026-06-21
+```
+
+Body holds the free-form text. A note has no status and never appears on the board.
+
+=== END FILE ===
+
+=== FILE: intake.json ===
+{
+  "name": "cowork-backlog",
+  "version": "1.0.0",
+  "description": "Manage a lightweight project backlog — iterations, stories, tasks, notes, and a read-only Kanban board — across one or more Cowork projects, with all state in human-readable markdown owned by a deterministic engine.",
+  "author": "Max <maksim5007@gmail.com>",
+  "license": "MIT",
+  "output_dir": "/sessions/hopeful-gallant-johnson/mnt/A3IP Clean Sheet Tests",
+
+  "protocols": [
+    {
+      "name": "init-backlog",
+      "trigger": "set up a backlog",
+      "aliases": ["track this project", "create a backlog", "start tracking this project"],
+      "description": "Scaffold a project's .backlog/ folder, create its first iteration, and register it on the shared board.",
+      "steps": [
+        "Confirm the project folder to track and the shared hub folder for the cross-project board.",
+        "Run script backlog with the init command to scaffold .backlog/ and register the project in the hub.",
+        "Add a first logical iteration (phase) with add-iteration, set to active.",
+        "Point the user at the regenerated board (hub board.html or the Cowork artifact)."
+      ]
+    },
+    {
+      "name": "track-work",
+      "trigger": "add a story",
+      "aliases": ["add a task", "move that to test", "what's the status", "what's next"],
+      "description": "Add stories and tasks, and advance their status across the board columns (planned → in_progress → test → completed).",
+      "steps": [
+        "Add stories with add-story (defaulting to the current iteration) and tasks with add-task, setting each task's assignee so the engine derives the story's involvement marks.",
+        "Advance work with the move command on a story or task id; never change status via the board, which only renders.",
+        "Use the test column when implementation is finished and only verification remains; promote to completed only after verification passes.",
+        "Use status for a quick text board, or open the regenerated board for the visual view."
+      ]
+    },
+    {
+      "name": "capture-knowledge",
+      "trigger": "log a decision",
+      "aliases": ["note this", "record a discovery", "flag a risk", "log a gotcha"],
+      "description": "Record durable project knowledge as a note (decision, discovery, risk, or gotcha), distinct from actionable work or CLAUDE.md directives.",
+      "steps": [
+        "Decide what surfaced: actionable work becomes a task/story; a fact about the project becomes a note; a directive on how to work becomes a proposed CLAUDE.md line (ask before editing).",
+        "Run script backlog with the note command, choosing the type and optionally attaching it to a story, iteration, or the project.",
+        "Announce the note in chat with its id and gist so nothing is filed silently."
+      ]
+    },
+    {
+      "name": "open-board",
+      "trigger": "show the board",
+      "aliases": ["open the board", "show me the Kanban board", "open the backlog"],
+      "description": "Surface the read-only Kanban board for the tracked project(s).",
+      "steps": [
+        "Run script backlog with sync to force-regenerate the project's board.json and local board.html.",
+        "Open the registered Cowork artifact for the switchable cross-project view, or the hub board.html in a browser.",
+        "For a quick in-chat glance, run the status command instead."
+      ]
+    }
+  ],
+
+  "skills": [
+    {
+      "name": "cowork-backlog",
+      "description": "Tells the AI how to drive the deterministic backlog engine: the six-entity model (backlog, iteration, story, task, note, reference), the board columns, derived-not-chosen assignees, the move/test discipline, the note-vs-work-vs-CLAUDE.md routing rule, and the multi-project shared-board mechanism."
+    }
+  ],
+
+  "artifacts": [
+    {
+      "name": "backlog-board",
+      "description": "A read-only Kanban board that renders each project's stories as cards across the planned → in_progress → test → completed columns, filtered by iteration, with a project switcher for the multi-project shared view. Reads each project's generated board.json by path; never writes state.",
+      "type": "ui-view"
+    }
+  ],
+
+  "prompts": [],
+
+  "scripts": [
+    {
+      "key": "backlog",
+      "description": "Deterministic CLI engine that owns every change to the backlog: id assignment, frontmatter read/write, derived story assignees, status validation, and board generation. Writes the project's .backlog/ markdown files and regenerates board.json + board.html atomically.",
+      "parameters": ["--project", "--hub", "command", "command options"],
+      "platforms": ["any"]
+    }
+  ],
+
+  "configuration": [
+    {
+      "key": "install_dir",
+      "label": "Installation directory",
+      "description": "Absolute path where the package stores its engine script, skill, and installed.json.",
+      "type": "string",
+      "required": true,
+      "sensitive": false,
+      "when": "before",
+      "default": null,
+      "placeholder": "e.g. C:\\Users\\you\\.claude\\packages\\cowork-backlog",
+      "validation": null,
+      "options": null,
+      "condition": null,
+      "refresh": "never",
+      "refresh_script": null
+    },
+    {
+      "key": "hub_dir",
+      "label": "Shared board hub directory",
+      "description": "Absolute path to the shared hub folder that hosts the cross-project board registry (projects.json) and the combined board.html. Optional — if omitted, each project's board stays self-contained in its own folder. Maps to the COWORK_BACKLOG_HUB environment variable.",
+      "type": "string",
+      "required": false,
+      "sensitive": false,
+      "when": "before",
+      "default": null,
+      "placeholder": "e.g. C:\\Users\\you\\OneDrive\\Claude\\Backlog Hub",
+      "validation": null,
+      "options": null,
+      "condition": null,
+      "refresh": "never",
+      "refresh_script": null
+    }
+  ],
+
+  "dependencies": {
+    "mcp": [
+      {
+        "name": "filesystem",
+        "required": false,
+        "purpose": "Lets the shared board artifact read each registered project's board.json by absolute path for the multi-project view.",
+        "registry": "mcp-registry/filesystem",
+        "fallback": "Without it, use each project's self-contained local board.html instead of the shared cross-project artifact."
+      }
+    ],
+    "tools": [
+      {
+        "name": "python",
+        "version": ">=3.9",
+        "required": true,
+        "purpose": "Runs the cross-platform backlog engine (auto-installs PyYAML on first run)."
+      }
+    ]
+  },
+
+  "auth_flows": [],
+
+  "platforms": ["cowork", "claude-code"]
+}
+
+=== END FILE ===
+
+=== FILE: manifest.yaml ===
+# ─────────────────────────────────────────
+# A3IP Manifest
+# Generated by A3IP Creator on 2026-06-28
+# ─────────────────────────────────────────
+
+a3ip: "1.10"
+min_a3ip_spec: "1.10"
+latest_change: 2026-06-28
+name: "cowork-backlog"
+version: "1.0.0"
+description: >
+  Manage a lightweight project backlog — iterations, stories, tasks, notes, and a read-only Kanban board — across one or more Cowork projects, with all state in human-readable markdown owned by a deterministic engine.
+author: "Maksym Prydorozhko <maksym.prydorozhko@gmail.com>"
+license: "Apache-2.0"
+
+# ─────────────────────────────────────────
+# Components
+# ─────────────────────────────────────────
+
+components:
+  skills:
+    - path: components/skills/cowork-backlog
+      description: "Tells the AI how to drive the deterministic backlog engine: the six-entity model (backlog, iteration, story, task, note, reference), the board columns, derived-not-chosen assignees, the move/test discipline, the note-vs-work-vs-CLAUDE.md routing rule, and the multi-project shared-board mechanism."
+
+  artifacts:
+    - path: components/artifacts/backlog-board
+      description: "A read-only Kanban board that renders each project's stories as cards across the planned → in_progress → test → completed columns, filtered by iteration, with a project switcher for the multi-project shared view. Reads each project's generated board.json by path; never writes state."
+
+  protocols:
+    - path: components/protocols/init-backlog.md
+      description: "Scaffold a project's .backlog/ folder, create its first iteration, and register it on the shared board."
+    - path: components/protocols/track-work.md
+      description: "Add stories and tasks, and advance their status across the board columns (planned → in_progress → test → completed)."
+    - path: components/protocols/capture-knowledge.md
+      description: "Record durable project knowledge as a note (decision, discovery, risk, or gotcha), distinct from actionable work or CLAUDE.md directives."
+    - path: components/protocols/open-board.md
+      description: "Surface the read-only Kanban board for the tracked project(s)."
+
+  prompts: []
+
+  scripts:
+    # Scripts follow a primary-plus-adapters pattern.
+    # 'any' platform = Python cross-platform default.
+    # 'windows' platform = PowerShell adapter in adapters/windows/scripts/.
+
+    - key: backlog
+      description: "Deterministic CLI engine that owns every change to the backlog: id assignment, frontmatter read/write, derived story assignees, status validation, and board generation. Writes the project's .backlog/ markdown files and regenerates board.json + board.html atomically."
+      parameters: ["--project", "--hub", "command", "command options"]
+      implementations:
+        - file: scripts/backlog.py
+          platform: any
+          trust_level: write-local
+
+# ─────────────────────────────────────────
+# Permissions
+# ─────────────────────────────────────────
+
+permissions:
+  filesystem:
+    - path: "{{config.install_dir}}"
+      access: read-write
+      reason: "Stores the engine script, skill, artifact, and installed.json."
+    - path: "<tracked project>/.backlog/"
+      access: read-write
+      reason: "Backlog state (markdown) plus the generated board.json and board.html for each tracked project."
+    - path: "{{config.hub_dir}}"
+      access: read-write
+      reason: "Shared hub registry (projects.json) and combined board.html for the cross-project view."
+  shell:
+    - command: python3
+      reason: "Runs the backlog engine."
+    - command: pip
+      reason: "Engine auto-installs PyYAML on first run if it is missing."
+  mcp:
+    - name: filesystem
+      reason: "Optional: the shared board artifact reads each project's board.json by absolute path."
+
+# ─────────────────────────────────────────
+# External dependencies
+# ─────────────────────────────────────────
+
+dependencies:
+  mcp:
+    - name: filesystem
+      required: false
+      purpose: "Lets the shared board artifact read each registered project's board.json by absolute path for the multi-project view."
+      registry: "mcp-registry/filesystem"
+      fallback: "Without it, use each project's self-contained local board.html instead of the shared cross-project artifact."
+
+  tools:
+    - name: python
+      version: ">=3.9"
+      required: true
+      purpose: "Runs the cross-platform backlog engine (auto-installs PyYAML on first run)."
+
+# ─────────────────────────────────────────
+# Configuration schema
+# Values collected during installation wizard.
+# Referenced as {{config.<key>}} in protocols, prompts, and scripts.
+# ─────────────────────────────────────────
+
+configuration:
+  - key: install_dir
+    label: "Installation directory"
+    description: "Absolute path where the package stores its engine script, skill, and installed.json."
+    type: string
+    required: true
+    placeholder: 'e.g. C:\Users\you\.claude\packages\cowork-backlog'
+    when: before
+
+  - key: hub_dir
+    label: "Shared board hub directory"
+    description: "Absolute path to the shared hub folder that hosts the cross-project board registry (projects.json) and the combined board.html. Optional — if omitted, each project's board stays self-contained in its own folder. Maps to the COWORK_BACKLOG_HUB environment variable."
+    type: string
+    required: false
+    placeholder: 'e.g. C:\Users\you\OneDrive\Claude\Backlog Hub'
+    when: before
+
+
+# ─────────────────────────────────────────
+# Platform compatibility
+# ─────────────────────────────────────────
+
+platforms:
+  tested:
+    - cowork
+    - claude-code
+
+=== END FILE ===
+
+=== FILE: scripts/backlog.py ===
+#!/usr/bin/env python3
+"""
+cowork-backlog — deterministic CLI engine for the Cowork Backlog system.
+
+Source of truth = human-readable markdown files with YAML frontmatter inside
+each project's `.backlog/` folder. A generated `board.json` index plus a hub
+snapshot + self-contained `board.html` are regenerated on every change.
+
+See the skill's SKILL.md for the model and the rules Claude must follow.
+This script owns the invariants: id assignment, frontmatter read/write,
+derived story assignees, status validation, and board generation.
+
+Registry safety (v2): the shared `projects.json` is **derived** by scanning the
+per-project snapshots under `<hub>/boards/`. Each project only ever writes its
+own `boards/<id>.json`, so there is no read-merge-write of a shared mutable file
+— a stale read on a cloud-synced hub (OneDrive/Dropbox) can no longer silently
+drop another project. Writes are atomic (temp + os.replace) and reads retry.
+"""
+
+import argparse
+import datetime
+import glob
+import json
+import os
+import re
+import subprocess
+import sys
+import time
+
+
+# --------------------------------------------------------------------------
+# Dependencies
+# --------------------------------------------------------------------------
+def _ensure_yaml():
+    try:
+        import yaml  # noqa
+        return yaml
+    except ImportError:
+        sys.stderr.write("[cowork-backlog] installing PyYAML ...\n")
+        subprocess.run(
+            [sys.executable, "-m", "pip", "install", "--quiet",
+             "--break-system-packages", "pyyaml"],
+            check=False,
+        )
+        import yaml  # noqa
+        return yaml
+
+
+yaml = _ensure_yaml()
+
+ASSIGNEES = ["ai", "human", "third_party", "unassigned"]
+STATUSES = ["planned", "in_progress", "test", "completed"]
+ITER_STATUSES = ["planned", "active", "completed"]
+PRIORITIES = ["low", "medium", "high", "critical"]
+
+
+# --------------------------------------------------------------------------
+# Small helpers
+# --------------------------------------------------------------------------
+def today():
+    return datetime.date.today().isoformat()
+
+
+def now_iso():
+    return datetime.datetime.now().isoformat(timespec="seconds")
+
+
+def slugify(text, maxlen=40):
+    s = re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")
+    return s[:maxlen].strip("-") or "item"
+
+
+def backlog_dir(project):
+    return os.path.join(project, ".backlog")
+
+
+def read_md(path):
+    """Return (meta_dict, body_str) for a frontmatter markdown file."""
+    with open(path, "r", encoding="utf-8") as f:
+        raw = f.read()
+    if raw.startswith("---"):
+        parts = raw.split("---", 2)
+        if len(parts) >= 3:
+            meta = yaml.safe_load(parts[1]) or {}
+            return meta, parts[2].lstrip("\n")
+    return {}, raw
+
+
+def write_md(path, meta, body=""):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    fm = yaml.safe_dump(meta, sort_keys=False, default_flow_style=False,
+                        allow_unicode=True).strip()
+    with open(path, "w", encoding="utf-8") as f:
+        f.write("---\n" + fm + "\n---\n\n" + (body or "").lstrip("\n"))
+
+
+def _atomic_write_json(path, obj):
+    """Write JSON to a temp file then os.replace — readers never see a half file."""
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    tmp = path + ".tmp.%d" % os.getpid()
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(obj, f, indent=2)
+        f.flush()
+        os.fsync(f.fileno())
+    os.replace(tmp, path)
+
+
+def _read_json_retry(path, attempts=4, delay=0.15):
+    """Tolerate cloud-sync lag / half-written files: retry a few times, then give up."""
+    if not os.path.exists(path):
+        return None
+    for i in range(attempts):
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except (json.JSONDecodeError, OSError):
+            if i == attempts - 1:
+                return None
+            time.sleep(delay)
+    return None
+
+
+def load_manifest(project):
+    p = os.path.join(backlog_dir(project), "backlog.yaml")
+    if not os.path.exists(p):
+        die("No backlog found at %s — run `init` first." % backlog_dir(project))
+    with open(p, "r", encoding="utf-8") as f:
+        return yaml.safe_load(f) or {}
+
+
+def save_manifest(project, manifest):
+    p = os.path.join(backlog_dir(project), "backlog.yaml")
+    os.makedirs(os.path.dirname(p), exist_ok=True)
+    with open(p, "w", encoding="utf-8") as f:
+        yaml.safe_dump(manifest, f, sort_keys=False, default_flow_style=False,
+                       allow_unicode=True)
+
+
+def die(msg, code=1):
+    sys.stderr.write("error: " + msg + "\n")
+    sys.exit(code)
+
+
+def ok(msg):
+    print(msg)
+
+
+# --------------------------------------------------------------------------
+# Lookups
+# --------------------------------------------------------------------------
+def story_path(project, sid):
+    matches = glob.glob(os.path.join(backlog_dir(project), "stories", sid + "-*.md"))
+    matches += glob.glob(os.path.join(backlog_dir(project), "stories", sid + ".md"))
+    return matches[0] if matches else None
+
+
+def all_story_paths(project):
+    return sorted(glob.glob(os.path.join(backlog_dir(project), "stories", "*.md")))
+
+
+def all_iteration_paths(project):
+    return sorted(glob.glob(os.path.join(backlog_dir(project), "iterations", "*.md")))
+
+
+def derive_assignees(tasks):
+    """Story marks = distinct set of task assignees, in canonical order.
+    No tasks => ['unassigned']."""
+    if not tasks:
+        return ["unassigned"]
+    present = {t.get("assignee", "unassigned") for t in tasks}
+    out = [a for a in ASSIGNEES if a in present]
+    return out or ["unassigned"]
+
+
+# --------------------------------------------------------------------------
+# Hub resolution
+# --------------------------------------------------------------------------
+def resolve_hub(args, project, manifest=None):
+    if getattr(args, "hub", None):
+        return os.path.abspath(args.hub)
+    env = os.environ.get("COWORK_BACKLOG_HUB")
+    if env:
+        return os.path.abspath(env)
+    if manifest and manifest.get("hub"):
+        return os.path.abspath(manifest["hub"])
+    # default: the project folder itself acts as the hub
+    return os.path.abspath(project)
+
+
+# --------------------------------------------------------------------------
+# Commands
+# --------------------------------------------------------------------------
+def cmd_init(args):
+    project = os.path.abspath(args.project)
+    bdir = backlog_dir(project)
+    if os.path.exists(os.path.join(bdir, "backlog.yaml")) and not args.force:
+        die("backlog already exists at %s (use --force to overwrite manifest)" % bdir)
+    for sub in ("iterations", "stories", "notes"):
+        os.makedirs(os.path.join(bdir, sub), exist_ok=True)
+    pid = args.id or slugify(args.name)
+    hub = resolve_hub(args, project)
+    manifest = {
+        "id": pid,
+        "name": args.name,
+        "description": args.description or "",
+        "current_iteration": None,
+        "statuses": STATUSES,
+        "assignee_types": ASSIGNEES,
+        "priorities": PRIORITIES,
+        "hub": hub,
+        "created": today(),
+        "counters": {"story": 0},
+    }
+    save_manifest(project, manifest)
+    sync(project, hub)
+    # store board_path RELATIVE to the hub (with '/'), so it resolves the same regardless
+    # of whether it's read from a Windows path or a Linux mount.
+    board_path = os.path.relpath(os.path.join(bdir, "board.json"), hub).replace(os.sep, "/")
+    upsert_registry(hub, {"id": pid, "name": args.name, "board_path": board_path})
+    ok("Initialised backlog '%s' (id: %s)" % (args.name, pid))
+    ok("  project : %s" % bdir)
+    ok("  hub     : %s" % hub)
+    ok("Registered into hub registry %s and generated board.html." % os.path.join(hub, "projects.json"))
+
+
+def cmd_add_iteration(args):
+    project = os.path.abspath(args.project)
+    manifest = load_manifest(project)
+    orders = []
+    for p in all_iteration_paths(project):
+        m, _ = read_md(p)
+        orders.append(m.get("order", 0))
+    order = (max(orders) + 1) if orders else 1
+    iid = "it-%02d" % order
+    meta = {
+        "id": iid,
+        "order": order,
+        "name": args.name,
+        "status": args.status or "planned",
+        "goal": args.goal or "",
+        "entry_criteria": args.entry or "",
+        "exit_criteria": args.exit or "",
+        "created": today(),
+    }
+    path = os.path.join(backlog_dir(project), "iterations",
+                        "%02d-%s.md" % (order, slugify(args.name)))
+    write_md(path, meta, "## Goal\n%s\n" % (args.goal or "(define the goal)"))
+    if not manifest.get("current_iteration"):
+        manifest["current_iteration"] = iid
+        save_manifest(project, manifest)
+    sync(project, resolve_hub(args, project, manifest))
+    ok("Added iteration %s — %s" % (iid, args.name))
+
+
+def cmd_add_story(args):
+    project = os.path.abspath(args.project)
+    manifest = load_manifest(project)
+    iteration = args.iteration or manifest.get("current_iteration")
+    if not iteration:
+        die("no iteration given and no current_iteration set")
+    n = manifest.get("counters", {}).get("story", 0) + 1
+    manifest.setdefault("counters", {})["story"] = n
+    sid = "S-%03d" % n
+    meta = {
+        "id": sid,
+        "title": args.title,
+        "iteration": iteration,
+        "status": args.status or "planned",
+        "priority": args.priority or "medium",
+        "blocked": False,
+        "assignees": ["unassigned"],
+        "references": list(args.ref or []),
+        "tasks": [],
+        "created": today(),
+        "updated": today(),
+    }
+    body = "## Description\n%s\n\n## Acceptance criteria\n%s\n" % (
+        args.description or "(describe the value this story delivers)",
+        "\n".join("- " + a for a in (args.ac or [])) or "- (define acceptance criteria)",
+    )
+    path = os.path.join(backlog_dir(project), "stories",
+                        "%s-%s.md" % (sid, slugify(args.title)))
+    write_md(path, meta, body)
+    save_manifest(project, manifest)
+    sync(project, resolve_hub(args, project, manifest))
+    ok("Added story %s — %s  (iteration %s)" % (sid, args.title, iteration))
+
+
+def cmd_add_task(args):
+    project = os.path.abspath(args.project)
+    manifest = load_manifest(project)
+    sp = story_path(project, args.story)
+    if not sp:
+        die("story %s not found" % args.story)
+    if args.assignee not in ASSIGNEES:
+        die("assignee must be one of %s" % ", ".join(ASSIGNEES))
+    meta, body = read_md(sp)
+    tasks = meta.get("tasks") or []
+    tnum = (max([int(str(t["id"]).split("-")[-1]) for t in tasks]) + 1) if tasks else 1
+    tid = "T-%d" % tnum
+    tasks.append({
+        "id": tid,
+        "title": args.title,
+        "status": args.status or "planned",
+        "assignee": args.assignee,
+    })
+    meta["tasks"] = tasks
+    meta["assignees"] = derive_assignees(tasks)
+    meta["updated"] = today()
+    write_md(sp, meta, body)
+    sync(project, resolve_hub(args, project, manifest))
+    ok("Added task %s to %s (%s) — %s" % (tid, args.story, args.assignee, args.title))
+    ok("  %s assignees now: %s" % (args.story, ", ".join(meta["assignees"])))
+
+
+def _status_warn(current, target, kind):
+    order = STATUSES
+    if current in order and target in order:
+        ci, ti = order.index(current), order.index(target)
+        if ti > ci + 1:
+            sys.stderr.write(
+                "warning: %s jumps %s -> %s, skipping %s. Proceeding.\n"
+                % (kind, current, target, ", ".join(order[ci + 1:ti]))
+            )
+
+
+def cmd_move(args):
+    project = os.path.abspath(args.project)
+    manifest = load_manifest(project)
+    target = args.status
+    if "/" in args.id:  # task move:  S-001/T-2
+        sid, tid = args.id.split("/", 1)
+        sp = story_path(project, sid)
+        if not sp:
+            die("story %s not found" % sid)
+        if target not in STATUSES:
+            die("status must be one of %s" % ", ".join(STATUSES))
+        meta, body = read_md(sp)
+        found = False
+        for t in meta.get("tasks", []):
+            if t["id"] == tid:
+                _status_warn(t.get("status", "planned"), target, "task")
+                t["status"] = target
+                found = True
+        if not found:
+            die("task %s not found in %s" % (tid, sid))
+        meta["updated"] = today()
+        write_md(sp, meta, body)
+        ok("Moved %s -> %s" % (args.id, target))
+    else:  # story move
+        sp = story_path(project, args.id)
+        if not sp:
+            die("story %s not found" % args.id)
+        if target not in STATUSES:
+            die("status must be one of %s" % ", ".join(STATUSES))
+        meta, body = read_md(sp)
+        _status_warn(meta.get("status", "planned"), target, "story")
+        meta["status"] = target
+        meta["updated"] = today()
+        write_md(sp, meta, body)
+        ok("Moved %s -> %s" % (args.id, target))
+    sync(project, resolve_hub(args, project, manifest))
+
+
+def cmd_block(args):
+    project = os.path.abspath(args.project)
+    manifest = load_manifest(project)
+    sp = story_path(project, args.id)
+    if not sp:
+        die("story %s not found" % args.id)
+    meta, body = read_md(sp)
+    meta["blocked"] = (args.state == "on")
+    meta["updated"] = today()
+    write_md(sp, meta, body)
+    sync(project, resolve_hub(args, project, manifest))
+    ok("%s blocked = %s" % (args.id, meta["blocked"]))
+
+
+def cmd_note(args):
+    project = os.path.abspath(args.project)
+    manifest = load_manifest(project)
+    d = today()
+    existing = glob.glob(os.path.join(backlog_dir(project), "notes", "N-%s-*.md" % d))
+    nnum = len(existing) + 1
+    nid = "N-%s-%02d" % (d, nnum)
+    meta = {
+        "id": nid,
+        "type": args.type,
+        "attaches_to": args.attaches or "project",
+        "date": d,
+    }
+    path = os.path.join(backlog_dir(project), "notes", nid + ".md")
+    write_md(path, meta, args.text.strip() + "\n")
+    ok("Noted as %s (%s, attaches to %s): %s"
+       % (nid, args.type, meta["attaches_to"], args.text.strip()))
+
+
+def cmd_link(args):
+    project = os.path.abspath(args.project)
+    manifest = load_manifest(project)
+    sp = story_path(project, args.id)
+    if not sp:
+        die("story %s not found" % args.id)
+    meta, body = read_md(sp)
+    refs = meta.get("references") or []
+    if args.ref not in refs:
+        refs.append(args.ref)
+    meta["references"] = refs
+    meta["updated"] = today()
+    write_md(sp, meta, body)
+    sync(project, resolve_hub(args, project, manifest))
+    ok("Linked %s to %s" % (args.id, args.ref))
+
+
+def cmd_set_current(args):
+    project = os.path.abspath(args.project)
+    manifest = load_manifest(project)
+    manifest["current_iteration"] = args.iteration
+    save_manifest(project, manifest)
+    sync(project, resolve_hub(args, project, manifest))
+    ok("current_iteration = %s" % args.iteration)
+
+
+def cmd_status(args):
+    project = os.path.abspath(args.project)
+    manifest = load_manifest(project)
+    data = build_index(project, manifest)
+    it = args.iteration or manifest.get("current_iteration")
+    print("# %s" % manifest.get("name"))
+    print("iteration: %s\n" % it)
+    cols = {s: [] for s in STATUSES}
+    for st in data["stories"]:
+        if it and st["iteration"] != it:
+            continue
+        cols[st["status"]].append(st)
+    for s in STATUSES:
+        print("## %s (%d)" % (s.replace("_", " ").title(), len(cols[s])))
+        for st in cols[s]:
+            done = sum(1 for t in st["tasks"] if t["status"] == "completed")
+            flag = " [BLOCKED]" if st["blocked"] else ""
+            print("  %s  %s  <%s>  %d/%d%s"
+                  % (st["id"], st["title"], "+".join(st["assignees"]),
+                     done, len(st["tasks"]), flag))
+        print()
+
+
+def cmd_sync(args):
+    project = os.path.abspath(args.project)
+    manifest = load_manifest(project)
+    sync(project, resolve_hub(args, project, manifest))
+    ok("Synced board.json and board.html.")
+
+
+def cmd_register(args):
+    project = os.path.abspath(args.project)
+    manifest = load_manifest(project)
+    hub = resolve_hub(args, project, manifest)
+    board_path = os.path.relpath(
+        os.path.join(backlog_dir(project), "board.json"), hub).replace(os.sep, "/")
+    upsert_registry(hub, {"id": manifest.get("id"), "name": manifest.get("name"),
+                          "board_path": board_path})
+    ok("Registered '%s' into the shared board registry: %s"
+       % (manifest.get("name"), os.path.join(hub, "projects.json")))
+    ok("  board_path (relative to hub): %s" % board_path)
+
+
+# --------------------------------------------------------------------------
+# Index + board generation
+# --------------------------------------------------------------------------
+def build_index(project, manifest):
+    iterations = []
+    for p in all_iteration_paths(project):
+        m, _ = read_md(p)
+        iterations.append({
+            "id": m.get("id"), "order": m.get("order", 0),
+            "name": m.get("name"), "status": m.get("status", "planned"),
+            "goal": m.get("goal", ""),
+        })
+    iterations.sort(key=lambda x: x["order"])
+    stories = []
+    for p in all_story_paths(project):
+        m, _ = read_md(p)
+        tasks = m.get("tasks") or []
+        stories.append({
+            "id": m.get("id"), "title": m.get("title"),
+            "iteration": m.get("iteration"), "status": m.get("status", "planned"),
+            "priority": m.get("priority", "medium"), "blocked": bool(m.get("blocked")),
+            "assignees": m.get("assignees") or derive_assignees(tasks),
+            "tasks": tasks, "references": m.get("references") or [],
+        })
+    stories.sort(key=lambda x: x["id"])
+    return {
+        "project": {"id": manifest.get("id"), "name": manifest.get("name"),
+                    "current_iteration": manifest.get("current_iteration")},
+        "statuses": manifest.get("statuses", STATUSES),
+        "iterations": iterations,
+        "stories": stories,
+        "generated_at": now_iso(),
+    }
+
+
+def upsert_registry(hub, entry):
+    """Add/replace a project's entry (by id) in <hub>/projects.json.
+
+    Called only by `register` / `init` (rare, deliberate) — NOT on every mutation —
+    so the read-merge-write of this shared file is low-risk. The registry stores a
+    pointer to each project's OWN board.json (`board_path`); nothing is copied into
+    the hub, so projects stay self-contained in their own folders and the shared
+    board reads each one in place. Atomic write + retrying read for cloud-sync safety.
+    """
+    os.makedirs(hub, exist_ok=True)
+    reg_path = os.path.join(hub, "projects.json")
+    reg = _read_json_retry(reg_path) or {"projects": [], "default": None}
+    projs = [p for p in reg.get("projects", []) if p.get("id") != entry["id"]]
+    projs.append(entry)
+    projs.sort(key=lambda x: (x.get("name") or x.get("id") or "").lower())
+    reg["projects"] = projs
+    if not reg.get("default"):
+        reg["default"] = entry["id"]
+    _atomic_write_json(reg_path, reg)
+    return reg
+
+
+def sync(project, hub=None):
+    """Write the project's own board.json + a local self-contained board.html.
+
+    The shared hub registry is intentionally NOT touched here — only `register`
+    (and `init`) update it. This means routine, frequent mutations never read or
+    rewrite the shared registry, so they cannot clobber another project's entry
+    (the failure mode that cloud-sync lag used to trigger). The cross-project board
+    is the Cowork artifact, which reads each project's board.json live by path.
+    """
+    manifest = load_manifest(project)
+    index = build_index(project, manifest)
+    _atomic_write_json(os.path.join(backlog_dir(project), "board.json"), index)
+    render_local_board(project, manifest, index)
+
+
+def render_local_board(project, manifest, index):
+    """A standalone board.html in the project folder showing THIS project only —
+    an offline, double-click fallback. The combined cross-project view is the
+    Cowork artifact (which reads every project's board.json by path)."""
+    tpl_path = os.path.join(os.path.dirname(__file__), "..", "assets",
+                            "board.template.html")
+    if not os.path.exists(tpl_path):
+        return
+    with open(tpl_path, "r", encoding="utf-8") as f:
+        tpl = f.read()
+    pid = manifest.get("id")
+    payload = {
+        "registry": {"projects": [{"id": pid, "name": manifest.get("name"),
+                                   "current_iteration": manifest.get("current_iteration")}],
+                     "default": pid},
+        "boards": {pid: index},
+    }
+    html = tpl.replace("/*__BACKLOG_DATA__*/null",
+                       json.dumps(payload, ensure_ascii=False))
+    tmp = os.path.join(project, "board.html.tmp.%d" % os.getpid())
+    with open(tmp, "w", encoding="utf-8") as f:
+        f.write(html)
+    os.replace(tmp, os.path.join(project, "board.html"))
+
+
+# --------------------------------------------------------------------------
+# Arg parsing
+# --------------------------------------------------------------------------
+def build_parser():
+    p = argparse.ArgumentParser(prog="backlog", description="Cowork Backlog engine")
+    p.add_argument("--project", default=".", help="project folder (default: cwd)")
+    p.add_argument("--hub", help="hub folder (default: env COWORK_BACKLOG_HUB / manifest / project)")
+    sub = p.add_subparsers(dest="cmd", required=True)
+
+    s = sub.add_parser("init", help="scaffold a backlog and register it in the hub")
+    s.add_argument("--name", required=True)
+    s.add_argument("--id")
+    s.add_argument("--description")
+    s.add_argument("--force", action="store_true")
+    s.set_defaults(func=cmd_init)
+
+    s = sub.add_parser("add-iteration")
+    s.add_argument("--name", required=True)
+    s.add_argument("--goal")
+    s.add_argument("--entry")
+    s.add_argument("--exit")
+    s.add_argument("--status", choices=ITER_STATUSES)
+    s.set_defaults(func=cmd_add_iteration)
+
+    s = sub.add_parser("add-story")
+    s.add_argument("--iteration")
+    s.add_argument("--title", required=True)
+    s.add_argument("--priority", choices=PRIORITIES)
+    s.add_argument("--status", choices=STATUSES)
+    s.add_argument("--description")
+    s.add_argument("--ac", action="append", help="acceptance criterion (repeatable)")
+    s.add_argument("--ref", action="append", help="reference (repeatable)")
+    s.set_defaults(func=cmd_add_story)
+
+    s = sub.add_parser("add-task")
+    s.add_argument("--story", required=True)
+    s.add_argument("--title", required=True)
+    s.add_argument("--assignee", required=True, choices=ASSIGNEES)
+    s.add_argument("--status", choices=STATUSES)
+    s.set_defaults(func=cmd_add_task)
+
+    s = sub.add_parser("move", help="change a story or task status (id or id/T-n)")
+    s.add_argument("--id", required=True)
+    s.add_argument("--status", required=True)
+    s.set_defaults(func=cmd_move)
+
+    s = sub.add_parser("block")
+    s.add_argument("--id", required=True)
+    s.add_argument("--state", choices=["on", "off"], required=True)
+    s.set_defaults(func=cmd_block)
+
+    s = sub.add_parser("note", help="record project knowledge (NOT work, NOT a CLAUDE.md rule)")
+    s.add_argument("--type", choices=["decision", "discovery", "risk", "gotcha"], required=True)
+    s.add_argument("--attaches", help="iteration/story/task id, or 'project'")
+    s.add_argument("--text", required=True)
+    s.set_defaults(func=cmd_note)
+
+    s = sub.add_parser("link")
+    s.add_argument("--id", required=True)
+    s.add_argument("--ref", required=True)
+    s.set_defaults(func=cmd_link)
+
+    s = sub.add_parser("set-current-iteration")
+    s.add_argument("--iteration", required=True)
+    s.set_defaults(func=cmd_set_current)
+
+    s = sub.add_parser("status", help="print a text board")
+    s.add_argument("--iteration")
+    s.set_defaults(func=cmd_status)
+
+    s = sub.add_parser("sync", help="regenerate this project's board.json and board.html")
+    s.set_defaults(func=cmd_sync)
+
+    s = sub.add_parser("register", help="add/update this project in the hub's shared board registry")
+    s.set_defaults(func=cmd_register)
+
+    return p
+
+
+def main(argv=None):
+    args = build_parser().parse_args(argv)
+    args.func(args)
+
+
+if __name__ == "__main__":
+    main()
+
+=== END FILE ===

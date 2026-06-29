@@ -142,3 +142,26 @@ packages:
         bundle_path: "ai-standup-assistant/ai-standup-assistant-v1.0.0.a3ip.bundle"
         a3ip_spec: "1.10"
         released: "2026-06-22"
+
+  - name: cowork-backlog
+    description: >
+      Lightweight project-execution tracker. The AI manages a backlog of
+      iterations, stories, tasks, and notes across one or more projects, and
+      renders a read-only Kanban board you can keep coming back to. All state
+      lives as human-readable markdown owned by a deterministic Python engine,
+      so the conventions never drift. Built for long, multi-session projects
+      that lose their overview and forget what was discovered mid-work.
+    author: "Maksym Prydorozhko <maksym.prydorozhko@gmail.com>"
+    license: "Apache-2.0"
+    repository: "https://github.com/a3ip-standard/packages"
+    latest_version: "1.0.0"
+    min_a3ip_spec: "1.10"
+    platforms:
+      - cowork
+      - claude-code
+    bundle_url: "https://github.com/a3ip-standard/packages/raw/main/cowork-backlog/cowork-backlog-v1.0.0.a3ip.bundle"
+    versions:
+      - version: "1.0.0"
+        bundle_path: "cowork-backlog/cowork-backlog-v1.0.0.a3ip.bundle"
+        a3ip_spec: "1.10"
+        released: "2026-06-29"

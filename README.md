@@ -30,6 +30,9 @@ requires, and how to install it:
   experiments, links them, and synthesizes findings as local markdown.
 - [**ai-standup-assistant**](./ai-standup-assistant/) — compiles a daily
   standup from your GitHub activity across configured repos.
+- [**cowork-backlog**](./cowork-backlog/) — lightweight project-execution
+  tracker: backlog, stories, tasks, notes, and a read-only Kanban board, all as
+  markdown owned by a deterministic engine.
 
 ## Installing a package
 
@@ -43,6 +46,7 @@ Latest bundle URLs (from the registry):
 - ai-code-review-flow: `https://github.com/a3ip-standard/packages/raw/main/ai-code-review-flow/ai-code-review-flow-v1.5.0.a3ip.bundle`
 - ai-research-workspace: `https://github.com/a3ip-standard/packages/raw/main/ai-research-workspace/ai-research-workspace-v1.1.0.a3ip.bundle`
 - ai-standup-assistant: `https://github.com/a3ip-standard/packages/raw/main/ai-standup-assistant/ai-standup-assistant-v1.0.0.a3ip.bundle`
+- cowork-backlog: `https://github.com/a3ip-standard/packages/raw/main/cowork-backlog/cowork-backlog-v1.0.0.a3ip.bundle`
 
 ## Adding a package
 
