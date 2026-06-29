@@ -34,20 +34,20 @@
 # ─────────────────────────────────────────
 
 registry_version: "1.0"
-updated: "2026-06-24"
+updated: "2026-06-29"
 
 packages:
   - name: a3ip-creator
     description: >
       Reference A3IP authoring tool. Guides an AI through authoring a new
       A3IP package from scratch via a structured intake conversation, or
-      reverse-engineers an existing workflow via Phase 0.7 Discovery mode.
+      reverse-engineers an existing workflow via its Discovery mode.
       Drives the a3ip CLI through scaffold, validate, and bundle to produce
       a distributable .a3ip.bundle. Platform-agnostic by design.
     author: "Maksym Prydorozhko <maksym.prydorozhko@gmail.com>"
     license: "Apache-2.0"
     repository: "https://github.com/a3ip-standard/creator"
-    latest_version: "3.0.0"
+    latest_version: "3.0.1"
     min_a3ip_spec: "1.10"
     platforms:
       - cowork
