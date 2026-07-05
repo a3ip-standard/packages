@@ -34,7 +34,7 @@
 # ─────────────────────────────────────────
 
 registry_version: "1.0"
-updated: "2026-06-29"
+updated: "2026-07-05"
 
 packages:
   - name: a3ip-creator
@@ -47,19 +47,19 @@ packages:
     author: "Maksym Prydorozhko <maksym.prydorozhko@gmail.com>"
     license: "Apache-2.0"
     repository: "https://github.com/a3ip-standard/creator"
-    latest_version: "3.0.1"
+    latest_version: "3.0.2"
     min_a3ip_spec: "1.10"
     platforms:
       - cowork
       - codex
       - claude-code
       - cursor
-    bundle_url: "https://github.com/a3ip-standard/packages/raw/main/a3ip-creator/a3ip-creator-v3.0.1.a3ip.bundle"
+    bundle_url: "https://github.com/a3ip-standard/packages/raw/main/a3ip-creator/a3ip-creator-v3.0.2.a3ip.bundle"
     versions:
-      - version: "3.0.1"
-        bundle_path: "a3ip-creator/a3ip-creator-v3.0.1.a3ip.bundle"
+      - version: "3.0.2"
+        bundle_path: "a3ip-creator/a3ip-creator-v3.0.2.a3ip.bundle"
         a3ip_spec: "1.10"
-        released: "2026-06-24"
+        released: "2026-07-05"
 
   - name: ai-code-review-flow
     description: >
